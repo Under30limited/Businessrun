@@ -5,7 +5,7 @@ export default function AnnouncementPopup({ onGoToApp }) {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 1500);
+    const timer = setTimeout(() => setVisible(true), 10000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -52,7 +52,7 @@ export default function AnnouncementPopup({ onGoToApp }) {
               Maybe Later
             </button>
           </div>
-          <p className="text-xs text-zinc-600 text-center mt-4">Applications close 31st March 2026</p>
+          <p className="text-xs text-zinc-600 text-center mt-4">Applications close 22nd April 2026</p>
         </div>
       </div>
     </div>
