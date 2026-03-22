@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, BadgeCheck, FileCheck, BarChart3, ArrowRight } from 'lucide-react';
 
-const SHEET_ENDPOINT = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKW9dQyblTsZg-8NRFTdp7zoF2j58SdRlvI3FwKXV7G7cR5DEAwxP1vK4RRABQtu9l/exec';
 
 // ─────────────────────────────────────────────────────────────
 // LandingView
