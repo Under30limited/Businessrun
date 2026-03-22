@@ -40,7 +40,7 @@ function LandingView({ onApplyClick }) {
       </button>
 
       {/* Deadline note */}
-      <p className="text-xs text-zinc-500 mt-3">Applications close 31st March 2026</p>
+      <p className="text-xs text-zinc-500 mt-3">Applications close 22nd April 2026</p>
 
       {/* Feature cards */}
       <div className="mt-14 sm:mt-16 md:mt-20 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
