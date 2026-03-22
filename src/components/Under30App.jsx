@@ -28,8 +28,7 @@ function LandingView({ onApplyClick }) {
         <strong className="text-white">2026 Under30Women in Business Mentorship Cohort.</strong>
       </p>
       <p className="text-base sm:text-lg text-zinc-300 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed">
-        We are looking for exceptional female founders across Africa ready to
-        build scalable, self-reliant enterprises.
+        We are vetting applicants who demonstrate exceptional resilience, innovative spirit and a drive to build scalable, self-reliant enterprises across Africa. Join a global network of founders leveraging the digital economy to create sustainable impact.
       </p>
 
       {/* CTA */}
