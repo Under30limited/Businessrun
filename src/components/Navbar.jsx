@@ -52,7 +52,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
                 </button>
                   <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
                   Top 30 List
-                </button>
               </div>
             )}
           </div>
@@ -91,7 +90,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
             </button>
               <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
               Top 30 List
-            </button>
           </div>
           <div className="pt-2">
             <button onClick={handleSubscribeClick} className="w-full bg-zinc-100 text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-500 transition">
