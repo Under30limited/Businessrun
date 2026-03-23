@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const SUBSCRIBE_ENDPOINT = 'PASTE_YOUR_SUBSCRIBE_APPS_SCRIPT_URL_HERE';
+const SUBSCRIBE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec';
 
 export default function SubscribeModal({ isOpen, onClose, resource = null }) {
   const [email, setEmail]           = useState('');
