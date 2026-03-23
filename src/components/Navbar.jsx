@@ -50,7 +50,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
                   <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-rocket text-xs"></i></span>
                   Under30Women
                 </button>
-                <button onClick={() => { setUnder30Open(false); onTop30Click(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-400 font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-amber-500 transition">
                   <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
                   Top 30 List
                 </button>
@@ -90,7 +89,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
               <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-rocket text-xs"></i></span>
               Under30Women
             </button>
-            <button onClick={() => { setMobileMenuOpen(false); onTop30Click(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition">
               <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
               Top 30 List
             </button>
