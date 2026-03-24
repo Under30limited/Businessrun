@@ -8,4 +8,4 @@ BusinessRun is designed to be a modern landing destination for business content 
 
 - **Curated business stories**: In-depth narratives about notable entrepreneurs and business leaders.
 - **Tools & resources**: Practical calculators and downloadable startup guides aimed at supporting business planning. 
-- **Subscribe integration**: A section to capture newsletter sign-ups and grow a founder community.
+- **Subscribe integration**: A section to capture newsletter sign-ups and grow a founder community. 
