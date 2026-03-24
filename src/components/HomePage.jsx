@@ -56,14 +56,14 @@ export default function HomePage({
   ];
 
   // ── AI Advisor ────────────────────────────────────────────
-  // Calls the Netlify Function at netlify/functions/advisor.js
-  // The Gemini API key lives in Netlify dashboard environment
+  // Calls the Cloudflare Pages Function at functions/advisor.js
+  // The Gemini API key lives in Cloudflare dashboard environment
   // variables — never in this file, never on GitHub.
   //
-  // To set the key: Netlify dashboard → Site settings
-  //   → Environment variables → Add variable
+  // To set the key: Cloudflare Dashboard → Pages → your project
+  //   → Settings → Environment variables → Add variable
   //      Key:   GEMINI_API_KEY
-  //      Value: AIza...  (your key from aistudio.google.com)
+  //      Value: AIza...  (from aistudio.google.com → Get API Key)
   // ─────────────────────────────────────────────────────────
 
   const [messages, setMessages] = useState([
@@ -108,7 +108,7 @@ export default function HomePage({
         .map(m => ({ role: m.role, content: m.content }));
 
       // POST to Netlify Function — same domain, no CORS issues
-      const response = await fetch('/.netlify/functions/advisor', {
+      const response = await fetch('/functions/advisor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
