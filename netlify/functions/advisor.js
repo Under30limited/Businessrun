@@ -73,7 +73,7 @@ exports.handler = async function (event, context) {
   ];
 
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-preview:generateContent?key=${apiKey}`;
 
   // ── Call Gemini ───────────────────────────────────────────────
   try {
