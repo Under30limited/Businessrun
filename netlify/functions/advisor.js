@@ -87,6 +87,15 @@ exports.handler = async function (event, context) {
       }),
     });
 
+    if (!geminiRes.ok) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: 'Response has isuue.',
+      }),
+    };
+   }		  
+
     const data = await geminiRes.json();
 
     if (data.error) {
