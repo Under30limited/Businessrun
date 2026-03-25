@@ -108,7 +108,7 @@ export default function HomePage({
         .map(m => ({ role: m.role, content: m.content }));
 
       // POST to Netlify Function — same domain, no CORS issues
-      const response = await fetch('/functions/advisor', {
+      const response = await fetch('/advisor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
