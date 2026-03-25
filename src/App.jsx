@@ -43,7 +43,7 @@ function App() {
         onLogoClick={goHome}
         onMagazineClick={goMagazine}
         onToolsClick={goTools}
-        onResourcesClick={openSubscribe}
+        onResourcesClick={() => openResourceModal('Pitch Deck Template')}
         onUnder30WomenClick={goUnder30}
         onTop30Click={goTop30}
         onSubscribeClick={openSubscribe}
