@@ -162,7 +162,7 @@ const honorees = [
     position: 'Co-Founder & CEO',
     founded: '2019',
     location: 'Lagos, Nigeria',
-    img: "/taaoma-maryam-apaokagi-top30-list-businessrun-2026.jpg",
+    img: "/taaoma.jpg",
     bio: 'The architect of the "One-Woman Studio" model, blending professional cinematography with digital storytelling to build a multi-sector media empire.',
     stats: [
       { label: 'Ventures',     value: 'Media & Food' },
