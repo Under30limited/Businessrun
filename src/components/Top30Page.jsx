@@ -135,7 +135,7 @@ const honorees = [
     position: 'Music Artist',
     founded: '2021',
     location: 'Lagos, Nigeria / Global',
-    img: "/ayra-starr-music-artist-top30-list-businessrun-2026.jpg",
+    img: "/ayra.jpg",
     bio: 'The face of the "Celestial Economy," blending high-fashion aesthetics with a Gen Z attitude to redefine Afrobeats for a global audience.',
     stats: [
       { label: 'Streams',     value: '500M+' },
