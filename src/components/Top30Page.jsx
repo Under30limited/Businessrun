@@ -81,7 +81,7 @@ const honorees = [
     position: 'Music Artist',
     founded: '2019',
     location: 'Lagos, Nigeria',
-    img: "/rema-divine-ikubor-music-artist-top30-businessrun-2026.jpg",
+    img: "/rema.jpg",
     bio: 'Exporting Afrobeats to the world by turning sound into a global cultural and commercial force.',
     stats: [
       { label: 'Streams',        value: '2B+'   },
