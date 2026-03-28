@@ -108,7 +108,7 @@ const honorees = [
     position: 'Founder',
     founded: '2022',
     location: 'Lagos, Nigeria',
-    img: "/Sarah-Kalu-Founder-Sara-Foundation-Africa-Top30-List-Businessrun-2026.jpg",
+    img: "/Sarah.jpg",
     bio: 'Building pathways for African youth and women to access opportunities in technology and entrepreneurship.',
     stats: [
       { label: 'Programs',     value: '2+'         },
