@@ -54,7 +54,7 @@ const honorees = [
     position: 'CEO & Co-founder',
     founded: '2021',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/Kennedy-Ekezie-Ceo-Kippa-2026.jpg`,
+    img: "/Kennedy-Ekezie-Ceo-Kippa-2026.jpg",
     bio: 'Building the financial backbone for Africa’s small businesses by turning informal trade into structured, trackable growth.',
     stats: [
       { label: 'Transactions', value: '$3B+' },
@@ -81,7 +81,7 @@ const honorees = [
     position: 'Music Artist',
     founded: '2019',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/rema-divine-ikubor-music-artist-top30-businessrun-2026.jpg`,
+    img: "/rema-divine-ikubor-music-artist-top30-businessrun-2026.jpg",
     bio: 'Exporting Afrobeats to the world by turning sound into a global cultural and commercial force.',
     stats: [
       { label: 'Streams',        value: '2B+'   },
@@ -108,7 +108,7 @@ const honorees = [
     position: 'Founder',
     founded: '2022',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/Sarah-Kalu-Founder-Sara-Foundation-Africa-Top30-List-Businessrun-2026.jpg`,
+    img: "/Sarah-Kalu-Founder-Sara-Foundation-Africa-Top30-List-Businessrun-2026.jpg",
     bio: 'Building pathways for African youth and women to access opportunities in technology and entrepreneurship.',
     stats: [
       { label: 'Programs',     value: '2+'         },
@@ -135,7 +135,7 @@ const honorees = [
     position: 'Music Artist',
     founded: '2021',
     location: 'Lagos, Nigeria / Global',
-    img: `${process.env.PUBLIC_URL}/ayra-starr-music-artist-top30-list-businessrun-2026.jpg`,
+    img: "/ayra-starr-music-artist-top30-list-businessrun-2026.jpg",
     bio: 'The face of the "Celestial Economy," blending high-fashion aesthetics with a Gen Z attitude to redefine Afrobeats for a global audience.',
     stats: [
       { label: 'Streams',     value: '500M+' },
@@ -162,7 +162,7 @@ const honorees = [
     position: 'Co-Founder & CEO',
     founded: '2019',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/taaoma-maryam-apaokagi-top30-list-businessrun-2026.jpg`,
+    img: "/taaoma-maryam-apaokagi-top30-list-businessrun-2026.jpg",
     bio: 'The architect of the "One-Woman Studio" model, blending professional cinematography with digital storytelling to build a multi-sector media empire.',
     stats: [
       { label: 'Ventures',     value: 'Media & Food' },
@@ -189,7 +189,7 @@ const honorees = [
     position: 'CEO & Founder',
     founded: '2020',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/munachimso-emenike-ceo-shopmunie-top30-businesinessrun-2026.jpg`,
+    img: "/munachimso-emenike-ceo-shopmunie-top30-businesinessrun-2026.jpg",
     bio: 'A master of audience monetization and vertical integration, transforming digital influence into a benchmark for the modern African boutique economy.',
     stats: [
       { label: 'Followers',    value: '500K+' },
@@ -216,7 +216,7 @@ const honorees = [
     position: 'Music Producer & Recording Artist',
     founded: '2018',
     location: 'Lagos, Nigeria / Global',
-    img: `${process.env.PUBLIC_URL}/london-mavin-music-producer-top30list-businessrun-2026.jpg`,
+    img: "/london-mavin-music-producer-top30list-businessrun-2026.jpg",
     bio: 'The architect of the "Global Afrobeats Sonic Identity," engineering the scalability of the Nigerian sound through record-breaking production and strategic global licensing.',
     stats: [
       { label: 'Streams',     value: '1B+' },
@@ -243,7 +243,7 @@ const honorees = [
     position: 'Founder & CEO',
     founded: '2019',
     location: 'Abuja, Nigeria',
-    img: `${process.env.PUBLIC_URL}/nyifamu-ogechi-manzo.jpg`,
+    img: "/nyifamu-ogechi-manzo.jpg",
     bio: 'Leveraging technology to improve productivity and market access for smallholder farmers across Northern Nigeria and the Sahel.',
     stats: [
       { label: 'Farmers',      value: '10,000+' },
