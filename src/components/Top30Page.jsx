@@ -27,7 +27,7 @@ const honorees = [
     position: 'Co-founder & COO',
     founded: '2019',
     location: 'Lagos, Nigeria',
-    img: `${process.env.PUBLIC_URL}/Yanmo-Omorogbe-Cofounder-Bamboo-Fintech-2026.jpg`,
+    img: "/Yanmo-Omorogbe-Cofounder-Bamboo-Fintech-2026.jpg",
     bio: 'Opening global markets to everyday Africans and turning users into investors.',
     stats: [
       { label: 'Users', value: '1M+' },
