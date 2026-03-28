@@ -54,7 +54,7 @@ const honorees = [
     position: 'CEO & Co-founder',
     founded: '2021',
     location: 'Lagos, Nigeria',
-    img: "/Kennedy-Ekezie-Ceo-Kippa-2026.jpg",
+    img: "/ekezie.jpg",
     bio: 'Building the financial backbone for Africa’s small businesses by turning informal trade into structured, trackable growth.',
     stats: [
       { label: 'Transactions', value: '$3B+' },
