@@ -189,7 +189,7 @@ const honorees = [
     position: 'CEO & Founder',
     founded: '2020',
     location: 'Lagos, Nigeria',
-    img: "/munachimso-emenike-ceo-shopmunie-top30-businesinessrun-2026.jpg",
+    img: "/munachimso.jpg",
     bio: 'A master of audience monetization and vertical integration, transforming digital influence into a benchmark for the modern African boutique economy.',
     stats: [
       { label: 'Followers',    value: '500K+' },
