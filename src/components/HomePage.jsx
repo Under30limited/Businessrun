@@ -87,6 +87,8 @@ export default function HomePage({
   function scrollToTop()    { if (chatBoxRef.current) chatBoxRef.current.scrollTop = 0; }
   function scrollToBottom() { if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }
 
+  const ADVISOR_DOWN_MSG = '__ADVISOR_DOWN__';
+
   const askAI = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -100,39 +102,54 @@ export default function HomePage({
     setIsLoading(true);
 
     try {
-      // Build history — skip the opening greeting, skip the latest user msg
-      // (we send it separately as 'message')
       const history = newMessages
-        .slice(1)   // skip greeting
+        .slice(1)     // skip opening greeting
         .slice(0, -1) // skip the message we just added
         .map(m => ({ role: m.role, content: m.content }));
 
-      // POST to Netlify Function — same domain, no CORS issues
-      const response = await fetch('/advisor', {
+      const response = await fetch('/functions/advisor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          history,
-        }),
+        body: JSON.stringify({ message: userMessage, history }),
       });
 
-      const data = await response.json();
+      // The function always returns JSON — but guard against edge cases
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        // Response wasn't JSON at all (e.g. Cloudflare 5xx HTML page)
+        setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
+        return;
+      }
 
-      if (data.error) throw new Error(data.error);
-      if (!data.text) throw new Error('Empty response from advisor function');
+      // advisorDown flag or missing text → friendly down message
+      if (data.advisorDown || !data.text || !data.text.trim()) {
+        setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
+        return;
+      }
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
 
-    } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '❌ ' + err.message,
-      }]);
+    } catch {
+      // Network failure (offline, DNS, etc.)
+      setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
     } finally {
       setIsLoading(false);
     }
   };
+
+
+  // Renders plain text with **bold** markdown → <strong> spans
+  function renderMessageContent(text) {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-black text-white">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
@@ -228,7 +245,7 @@ export default function HomePage({
 
           {/* Register Your Business → WhatsApp */}
           <a
-            href="https://wa.me/2347044450636"
+            href="https://wa.me/2348159346026"
             target="_blank"
             rel="noopener noreferrer"
             className="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between block"
@@ -344,9 +361,21 @@ export default function HomePage({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.role === 'user' ? 'bg-amber-500 text-black font-black' : 'bg-zinc-800 text-amber-500 border border-zinc-700'}`}>
                       {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                     </div>
-                    <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold shadow-lg' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
-                      {m.content}
-                    </div>
+
+                    {/* Advisor-down: friendly UI card */}
+                    {m.content === ADVISOR_DOWN_MSG ? (
+                      <div className="p-4 rounded-2xl text-[11px] leading-relaxed bg-zinc-900 border border-zinc-700 text-zinc-400 flex items-start gap-3">
+                        <span className="text-lg leading-none">🛠️</span>
+                        <div>
+                          <p className="font-black text-zinc-300 uppercase tracking-widest text-[9px] mb-1">Advisor Unavailable</p>
+                          <p>The advisory is currently down. Please check back later — we're working on it.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold shadow-lg' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
+                        {renderMessageContent(m.content)}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
