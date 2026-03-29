@@ -2,62 +2,36 @@
 // functions/advisor.js
 // BusinessRun — Strategic AI Advisor (Cloudflare Pages Function)
 // ================================================================
-// This runs on Cloudflare's edge servers — NOT in the browser.
+// Cloudflare Pages Functions run on the edge — NOT in the browser.
 // The GEMINI_API_KEY environment variable is set in:
 //   Cloudflare Dashboard → Pages → your project
-//   → Settings → Environment variables → Add variable
-//      Key:   GEMINI_API_KEY
-//      Value: AIza...
-//
-// Frontend calls: POST /functions/advisor
+//   → Settings → Environment variables
 // ================================================================
 
 export async function onRequestPost(context) {
 
-  const { request, env } = context;
+  const apiKey = context.env.GEMINI_API_KEY;
 
-  // ── CORS headers ──────────────────────────────────────────────
-  const corsHeaders = {
-    'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type':                 'application/json',
-  };
+  // ── No API key set ───────────────────────────────────────────
+  if (!apiKey) {
+    return jsonResponse(200, {
+      text: null,
+      advisorDown: true,
+    });
+  }
 
-  // ── Parse request body ────────────────────────────────────────
+  // ── Parse request body ───────────────────────────────────────
   let body;
   try {
-    body = await request.json();
+    body = await context.request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Invalid JSON in request body' }),
-      { status: 400, headers: corsHeaders }
-    );
+    return jsonResponse(400, { error: 'Invalid JSON in request body' });
   }
 
   const { message, history = [] } = body;
 
   if (!message) {
-    return new Response(
-      JSON.stringify({ error: 'No message provided' }),
-      { status: 400, headers: corsHeaders }
-    );
-  }
-
-  // ── Read API key from Cloudflare environment variable ─────────
-  // Set in: Cloudflare Dashboard → Pages → your project
-  //         → Settings → Environment variables
-  //   Key:   GEMINI_API_KEY
-  //   Value: AIza...  (from aistudio.google.com → Get API Key)
-  const apiKey = env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({
-        error: 'GEMINI_API_KEY not set. Add it in Cloudflare Dashboard → Pages → Settings → Environment variables.',
-      }),
-      { status: 500, headers: corsHeaders }
-    );
+    return jsonResponse(400, { error: 'No message provided' });
   }
 
   // ── System prompt ─────────────────────────────────────────────
@@ -66,10 +40,11 @@ export async function onRequestPost(context) {
     'Help African business owners register, grow and scale their businesses. ' +
     'Tone: High-agency, professional, actionable. Keep responses concise and practical. ' +
     'Topics: CAC registration, Nigerian tax law, go-to-market strategy, fundraising, ' +
-    'fintech, AfCFTA, e-commerce, brand building, pricing, hiring.';
+    'fintech, AfCFTA, e-commerce, brand building, pricing, hiring. ' +
+    'IMPORTANT: Always reply in plain text only. Never use HTML tags. ' +
+    'You may use markdown such as **bold**, bullet points and line breaks.';
 
   // ── Build Gemini conversation ─────────────────────────────────
-  // Gemini uses 'user' and 'model' roles (not 'assistant')
   const contents = [
     ...history.map(m => ({
       role:  m.role === 'assistant' ? 'model' : 'user',
@@ -79,7 +54,7 @@ export async function onRequestPost(context) {
   ];
 
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   // ── Call Gemini ───────────────────────────────────────────────
   try {
@@ -93,45 +68,86 @@ export async function onRequestPost(context) {
       }),
     });
 
-    const data = await geminiRes.json();
+    // ── Gemini might return non-JSON on network/quota errors ────
+    const rawText = await geminiRes.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      // Gemini returned something unparseable (HTML error page, plain text, etc.)
+      // Treat as advisor-down rather than crashing
+      return jsonResponse(200, { text: null, advisorDown: true });
+    }
 
+    // ── Gemini returned a structured error ───────────────────────
     if (data.error) {
-      return new Response(
-        JSON.stringify({ error: 'Gemini error: ' + data.error.message }),
-        { status: 502, headers: corsHeaders }
-      );
+      // Surface quota/auth errors as advisor-down, not raw error strings
+      return jsonResponse(200, { text: null, advisorDown: true });
     }
 
-    const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    // ── Extract the text from Gemini's response ──────────────────
+    let aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!aiText) {
-      return new Response(
-        JSON.stringify({ error: 'No text returned from Gemini' }),
-        { status: 502, headers: corsHeaders }
-      );
+    // ── Empty / missing text ─────────────────────────────────────
+    if (!aiText || !aiText.trim()) {
+      return jsonResponse(200, { text: null, advisorDown: true });
     }
 
-    return new Response(
-      JSON.stringify({ text: aiText }),
-      { status: 200, headers: corsHeaders }
-    );
+    // ── Sanitise: strip any HTML tags Gemini occasionally returns ─
+    aiText = stripHtml(aiText);
+
+    // ── Final empty check after stripping ───────────────────────
+    if (!aiText.trim()) {
+      return jsonResponse(200, { text: null, advisorDown: true });
+    }
+
+    return jsonResponse(200, { text: aiText });
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Function error: ' + err.message }),
-      { status: 500, headers: corsHeaders }
-    );
+    // Network failure reaching Gemini — treat as advisor-down
+    return jsonResponse(200, { text: null, advisorDown: true });
   }
 }
 
-// ── Handle OPTIONS preflight ──────────────────────────────────────
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin':  '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+// ── Helpers ──────────────────────────────────────────────────────
+
+function jsonResponse(status, payload) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * stripHtml — converts HTML to readable plain text.
+ *
+ * Handles the most common patterns Gemini returns:
+ *   <br>, <p>, <li>  → newlines
+ *   <strong>, <b>    → kept as **text** (markdown bold)
+ *   All other tags   → removed
+ *   HTML entities    → decoded
+ */
+function stripHtml(input) {
+  return input
+    // Block-level tags → newline
+    .replace(/<\/p>/gi,   '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/li>/gi,  '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    // Bold tags → markdown bold
+    .replace(/<strong>(.*?)<\/strong>/gis, '**$1**')
+    .replace(/<b>(.*?)<\/b>/gis,          '**$1**')
+    // Strip all remaining tags
+    .replace(/<[^>]+>/g, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g,  '&')
+    .replace(/&lt;/g,   '<')
+    .replace(/&gt;/g,   '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g,  "'")
+    .replace(/&nbsp;/g, ' ')
+    // Collapse more than 2 consecutive newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
