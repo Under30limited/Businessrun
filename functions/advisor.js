@@ -11,6 +11,7 @@
 export async function onRequestPost(context) {
 
   const apiKey = context.env.GEMINI_API_KEY;
+  console.log('API key present:', !!apiKey);
 
   // ── No API key set ───────────────────────────────────────────
   if (!apiKey) {
@@ -73,6 +74,7 @@ export async function onRequestPost(context) {
     let data;
     try {
       data = JSON.parse(rawText);
+      console.log('Gemini raw response:', rawText.slice(0, 300));
     } catch {
       // Gemini returned something unparseable (HTML error page, plain text, etc.)
       // Treat as advisor-down rather than crashing
