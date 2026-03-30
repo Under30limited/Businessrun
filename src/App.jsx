@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
 import Navbar            from './components/Navbar';
 import HomePage          from './components/HomePage';
 import ToolsPage         from './components/ToolsPage';
@@ -9,23 +11,26 @@ import MagazinePage      from './components/MagazinePage';
 import SubscribeModal    from './components/SubscribeModal';
 import AnnouncementPopup from './components/AnnouncementPopup';
 
-function App() {
-  const [activePage, setActivePage] = useState('home');
-  const [openStoryId, setOpenStoryId] = useState(null);
-  const [subscribeOpen, setSubscribeOpen] = useState(false);
+function AppInner() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [subscribeOpen,  setSubscribeOpen]  = useState(false);
   const [activeResource, setActiveResource] = useState(null);
 
   function openSubscribe()      { setActiveResource(null); setSubscribeOpen(true); }
   function openResourceModal(r) { setActiveResource(r);    setSubscribeOpen(true); }
   function closeSubscribe()     { setSubscribeOpen(false); setActiveResource(null); }
 
-  function goHome()             { setActivePage('home');    setOpenStoryId(null); window.scrollTo(0, 0); }
-  function goTools()            { setActivePage('tools');   window.scrollTo(0, 0); }
-  function goUnder30()          { setActivePage('under30'); window.scrollTo(0, 0); }
-  function goTop30()            { setActivePage('top30');   window.scrollTo(0, 0); }
-  function goReceipt()          { setActivePage('receipt'); window.scrollTo(0, 0); }
-  function goMagazine()         { setOpenStoryId(null); setActivePage('magazine'); window.scrollTo(0, 0); }
-  function goMagazineStory(id)  { setOpenStoryId(id);   setActivePage('magazine'); window.scrollTo(0, 0); }
+  function goHome()    { navigate('/');        window.scrollTo(0, 0); }
+  function goTools()   { navigate('/tools');   window.scrollTo(0, 0); }
+  function goUnder30() { navigate('/under30'); window.scrollTo(0, 0); }
+  function goTop30()   { navigate('/top30');   window.scrollTo(0, 0); }
+  function goReceipt() { navigate('/receipt'); window.scrollTo(0, 0); }
+  function goMagazine(){ navigate('/magazine');window.scrollTo(0, 0); }
+
+  // goMagazineStory is only used by HomePage terminal feed cards
+  function goMagazineStory(id) { navigate(`/magazine/article/${id}`); window.scrollTo(0, 0); }
 
   return (
     <>
@@ -35,7 +40,7 @@ function App() {
         resource={activeResource}
       />
 
-      {activePage === 'home' && (
+      {location.pathname === '/' && (
         <AnnouncementPopup onGoToApp={goUnder30} />
       )}
 
@@ -49,51 +54,52 @@ function App() {
         onSubscribeClick={openSubscribe}
       />
 
-      {activePage === 'home' && (
-        <div className="pt-16">
-          <HomePage
-            onMagazineClick={goMagazine}
-            onMagazineStoryClick={goMagazineStory}
-            onToolsClick={goTools}
-            onUnder30Click={goUnder30}
-            onTop30Click={goTop30}
-            onReceiptClick={goReceipt}
-            onSubscribeClick={openSubscribe}
-            onResourceClick={openResourceModal}
+      <div className="pt-16">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                onMagazineClick={goMagazine}
+                onMagazineStoryClick={goMagazineStory}
+                onToolsClick={goTools}
+                onUnder30Click={goUnder30}
+                onTop30Click={goTop30}
+                onReceiptClick={goReceipt}
+                onSubscribeClick={openSubscribe}
+                onResourceClick={openResourceModal}
+              />
+            }
           />
-        </div>
-      )}
+          <Route path="/tools"   element={<ToolsPage       onBack={goHome} />} />
+          <Route path="/under30" element={<Under30App       onBack={goHome} />} />
+          <Route path="/top30"   element={<Top30Page        onBack={goHome} />} />
+          <Route path="/receipt" element={<ReceiptGenerator onBack={goHome} />} />
 
-      {activePage === 'tools' && (
-        <div className="pt-16">
-          <ToolsPage onBack={goHome} />
-        </div>
-      )}
+          {/* Both /magazine and /magazine/article/:articleId use the same component.
+              MagazinePage reads useParams() internally to know which article to open. */}
+          <Route path="/magazine"                      element={<MagazinePage onBack={goHome} />} />
+          <Route path="/magazine/article/:articleId"   element={<MagazinePage onBack={goHome} />} />
 
-      {activePage === 'under30' && (
-        <div className="pt-16">
-          <Under30App onBack={goHome} />
-        </div>
-      )}
-
-      {activePage === 'top30' && (
-        <div className="pt-16">
-          <Top30Page onBack={goHome} />
-        </div>
-      )}
-
-      {activePage === 'receipt' && (
-        <div className="pt-16">
-          <ReceiptGenerator onBack={goHome} />
-        </div>
-      )}
-
-      {activePage === 'magazine' && (
-        <div className="pt-16">
-          <MagazinePage onBack={goHome} openStoryId={openStoryId} />
-        </div>
-      )}
+          {/* Catch-all */}
+          <Route path="*" element={<RedirectHome />} />
+        </Routes>
+      </div>
     </>
+  );
+}
+
+function RedirectHome() {
+  const navigate = useNavigate();
+  React.useEffect(() => { navigate('/', { replace: true }); }, [navigate]);
+  return null;
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
   );
 }
 
