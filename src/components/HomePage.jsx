@@ -107,7 +107,7 @@ export default function HomePage({
         .slice(0, -1) // skip the message we just added
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await fetch('/functions/advisor', {
+      const response = await fetch('/advisor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage, history }),
