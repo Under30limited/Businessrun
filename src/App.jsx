@@ -8,6 +8,7 @@ import Under30App        from './components/Under30App';
 import Top30Page         from './components/Top30Page';
 import ReceiptGenerator  from './components/ReceiptGenerator';
 import MagazinePage      from './components/MagazinePage';
+import LivePricePage     from './components/LivePricePage';
 import SubscribeModal    from './components/SubscribeModal';
 import AnnouncementPopup from './components/AnnouncementPopup';
 
@@ -29,7 +30,8 @@ function AppInner() {
   function goReceipt() { navigate('/receipt'); window.scrollTo(0, 0); }
   function goMagazine(){ navigate('/magazine');window.scrollTo(0, 0); }
 
-  // goMagazineStory is only used by HomePage terminal feed cards
+  // Navigate to any article directly by id — works from anywhere in the app
+  // and also handles direct URL access e.g. /magazine/article/1
   function goMagazineStory(id) { navigate(`/magazine/article/${id}`); window.scrollTo(0, 0); }
 
   return (
@@ -75,6 +77,7 @@ function AppInner() {
           <Route path="/under30" element={<Under30App       onBack={goHome} />} />
           <Route path="/top30"   element={<Top30Page        onBack={goHome} />} />
           <Route path="/receipt" element={<ReceiptGenerator onBack={goHome} />} />
+          <Route path="/prices"  element={<LivePricePage    onBack={goHome} />} />
 
           {/* Both /magazine and /magazine/article/:articleId use the same component.
               MagazinePage reads useParams() internally to know which article to open. */}
