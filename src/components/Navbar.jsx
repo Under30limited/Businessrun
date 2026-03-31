@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
+import LivePriceDropdown, { MARKET_DATA, MobilePriceSection } from './LivePriceDropdown';
 
 function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeClick, onResourcesClick, onMagazineClick, onToolsClick }) {
-  const [under30Open, setUnder30Open]       = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [under30Open, setUnder30Open]         = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
+  const [mobilePriceOpen, setMobilePriceOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +42,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
           <button onClick={onToolsClick}     className="hover:text-amber-500 transition focus:outline-none">Tools</button>
           <button onClick={onResourcesClick} className="hover:text-amber-500 transition focus:outline-none">Resources</button>
 
+          {/* Under30 dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button onClick={() => setUnder30Open(p => !p)} className="flex items-center gap-1 hover:text-amber-500 transition focus:outline-none">
               Under30
@@ -50,13 +54,16 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
                   <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-rocket text-xs"></i></span>
                   Under30Women
                 </button>
-                <button onClick={() => { setUnder30Open(false); onTop30Click(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-400 font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-amber-500 transition">
-                  <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
+                <button disabled className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-700 font-bold uppercase tracking-widest cursor-not-allowed">
+                  <span className="w-7 h-7 bg-zinc-900 text-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
                   Top 30 List
                 </button>
               </div>
             )}
           </div>
+
+          {/* Live Price — desktop */}
+          <LivePriceDropdown />
         </div>
 
         {/* Right */}
@@ -84,17 +91,43 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
           <button onClick={() => { setMobileMenuOpen(false); onResourcesClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
             <i className="fas fa-book w-4 text-zinc-600"></i> Resources
           </button>
+
+          {/* Under30 mobile */}
           <div className="pt-1 border-t border-zinc-900 mt-1">
             <p className="px-4 py-2 text-[9px] font-black text-zinc-700 uppercase tracking-widest">Under30</p>
             <button onClick={handleUnder30WomenClick} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition">
               <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-rocket text-xs"></i></span>
               Under30Women
             </button>
-            <button onClick={() => { setMobileMenuOpen(false); onTop30Click(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition">
-              <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
+            <button disabled className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-700 cursor-not-allowed">
+              <span className="w-7 h-7 bg-zinc-900 text-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
               Top 30 List
             </button>
           </div>
+
+          {/* Live Price — mobile accordion */}
+          <div className="pt-1 border-t border-zinc-900 mt-1">
+            <button
+              onClick={() => setMobilePriceOpen(p => !p)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 bg-zinc-800 text-zinc-600 rounded-lg flex items-center justify-center flex-shrink-0 text-sm">📊</span>
+                <span>Live Price</span>
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              </div>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${mobilePriceOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {mobilePriceOpen && (
+              <div className="mx-2 mb-2 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800">
+                {MARKET_DATA.map((section, idx) => (
+                  <MobilePriceSection key={idx} section={section} />
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="pt-2">
             <button onClick={handleSubscribeClick} className="w-full bg-zinc-100 text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-500 transition">
               Join Capital Club
