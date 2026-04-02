@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Filter, X, MapPin, Calendar, Users, TrendingUp, ChevronRight, ArrowRight } from 'lucide-react';
+import { Award, Filter, X, MapPin, Calendar, Users, TrendingUp, ChevronRight, ArrowRight, Send, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────
 // HONOREES DATA
@@ -263,6 +263,7 @@ const honorees = [
   },
 ];
 
+
 const categories = ['All', 'Finance', 'Tech', 'Art & Style', 'Social Impact', 'Retail'];
 
 // ─────────────────────────────────────────────────────────────────
@@ -400,12 +401,433 @@ function StoryModal({ person, onClose }) {
   );
 }
 
+
+// ─────────────────────────────────────────────────────────────────
+// NominationModal
+// ─────────────────────────────────────────────────────────────────
+// Submissions are posted to a Google Apps Script endpoint.
+// Set your deployed web app URL below — same pattern as Under30App.
+const NOMINATION_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwQA_rmMQ89VLLXU--ffZxjLctCQtY4waTZRglBTyoV-WJgPthsi8a7rjirPmVOGCbB4A/exec';
+
+const INDUSTRIES = [
+  'Finance & Fintech',
+  'Technology',
+  'Agriculture & Food',
+  'Health & MedTech',
+  'Fashion & Art',
+  'Media & Entertainment',
+  'Logistics & Supply Chain',
+  'Education & EdTech',
+  'Energy & CleanTech',
+  'Real Estate & PropTech',
+  'Retail & E-commerce',
+  'Social Impact & NGO',
+  'Other',
+];
+
+function NominationModal({ onClose }) {
+  const [step, setStep]           = useState(1); // 1 = nominee details, 2 = nominator details
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted]   = useState(false);
+  const [error, setError]           = useState('');
+
+  const [form, setForm] = useState({
+    // Step 1 — About the nominee
+    nomineeName:        '',
+    nomineeAge:         '',
+    nomineeCompany:     '',
+    nomineePosition:    '',
+    nomineeIndustry:    '',
+    nomineeLocation:    '',
+    achievement:        '',
+    impact:             '',
+    socialOrWebsite:    '',
+    // Step 2 — About the nominator
+    nominatorName:      '',
+    nominatorEmail:     '',
+    relationship:       '',
+    consent:            false,
+  });
+
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  function set(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setError('');
+  }
+
+  function validateStep1() {
+    if (!form.nomineeName.trim())     return 'Nominee name is required.';
+    if (!form.nomineeAge.trim())      return 'Nominee age is required.';
+    if (isNaN(form.nomineeAge) || +form.nomineeAge < 16 || +form.nomineeAge > 30)
+                                      return 'Age must be between 16 and 30.';
+    if (!form.nomineeCompany.trim())  return 'Company or venture name is required.';
+    if (!form.nomineeIndustry)        return 'Please select an industry.';
+    if (!form.nomineeLocation.trim()) return 'Location is required.';
+    if (!form.achievement.trim())     return 'Please describe their key achievement.';
+    if (!form.impact.trim())          return 'Please describe their business impact.';
+    return null;
+  }
+
+  function validateStep2() {
+    if (!form.nominatorName.trim())  return 'Your name is required.';
+    if (!form.nominatorEmail.trim()) return 'Your email is required.';
+    if (!/\S+@\S+\.\S+/.test(form.nominatorEmail)) return 'Please enter a valid email.';
+    if (!form.relationship.trim())   return 'Please describe your relationship to the nominee.';
+    if (!form.consent)               return 'You must confirm the information is accurate.';
+    return null;
+  }
+
+  function handleNext() {
+    const err = validateStep1();
+    if (err) { setError(err); return; }
+    setStep(2);
+    setError('');
+  }
+
+  async function handleSubmit() {
+    const err = validateStep2();
+    if (err) { setError(err); return; }
+
+    setSubmitting(true);
+    setError('');
+    try {
+      await fetch(NOMINATION_ENDPOINT, {
+        method: 'POST',
+        mode:   'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          submittedAt: new Date().toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }),
+          source: 'businessrun-top30-nomination',
+        }),
+      });
+      setSubmitted(true);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const inputClass = "w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500 transition-colors";
+  const labelClass = "block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2";
+
+  return (
+    <div
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-950 border border-zinc-800 w-full sm:rounded-[2rem] max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* ── Header ───────────────────────────────────────────── */}
+        <div className="sticky top-0 z-10 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-900 px-6 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-widest text-amber-500">
+              BusinessRun Top 30 · Class of 2026
+            </p>
+            <h2 className="text-white font-black text-lg uppercase italic tracking-tight mt-0.5">
+              Nominate a Visionary
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center text-zinc-400 hover:text-white transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* ── Success state ─────────────────────────────────────── */}
+        {submitted ? (
+          <div className="px-8 py-16 text-center">
+            <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle size={30} className="text-black" />
+            </div>
+            <h3 className="text-2xl font-black italic uppercase text-white mb-3">
+              Nomination Received!
+            </h3>
+            <p className="text-zinc-400 text-sm leading-relaxed max-w-md mx-auto mb-2">
+              Thank you for nominating <strong className="text-zinc-200">{form.nomineeName}</strong>.
+              Our editorial team will review all nominations and reach out if selected for the 2026 Class.
+            </p>
+            <p className="text-zinc-600 text-xs mt-6 uppercase tracking-widest font-black">
+              Nominations close 30th June 2026
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-8 px-8 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 rounded-xl text-xs font-black uppercase tracking-widest transition"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <div className="px-6 sm:px-8 py-8">
+
+            {/* ── Step indicator ───────────────────────────────── */}
+            <div className="flex items-center gap-3 mb-8">
+              {[1, 2].map(s => (
+                <React.Fragment key={s}>
+                  <div className={`flex items-center gap-2 ${step >= s ? 'text-amber-500' : 'text-zinc-600'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all ${
+                      step > s  ? 'bg-amber-500 border-amber-500 text-black' :
+                      step === s ? 'border-amber-500 text-amber-500' :
+                                  'border-zinc-700 text-zinc-600'
+                    }`}>
+                      {step > s ? '✓' : s}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
+                      {s === 1 ? 'About the Nominee' : 'Your Details'}
+                    </span>
+                  </div>
+                  {s < 2 && <div className={`flex-1 h-px transition-all ${step > 1 ? 'bg-amber-500' : 'bg-zinc-800'}`} />}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* ── Step 1 — Nominee Details ──────────────────────── */}
+            {step === 1 && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Adaeze Okonkwo"
+                      value={form.nomineeName}
+                      onChange={e => set('nomineeName', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Age *</label>
+                    <input
+                      type="number"
+                      placeholder="Must be 30 or under"
+                      min="16" max="30"
+                      value={form.nomineeAge}
+                      onChange={e => set('nomineeAge', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Company / Venture *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PayStack Nigeria"
+                      value={form.nomineeCompany}
+                      onChange={e => set('nomineeCompany', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Position / Role</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Founder & CEO"
+                      value={form.nomineePosition}
+                      onChange={e => set('nomineePosition', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Industry *</label>
+                    <select
+                      value={form.nomineeIndustry}
+                      onChange={e => set('nomineeIndustry', e.target.value)}
+                      className={inputClass + " appearance-none cursor-pointer"}
+                    >
+                      <option value="">Select industry...</option>
+                      {INDUSTRIES.map(ind => (
+                        <option key={ind} value={ind}>{ind}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Location (City, Country) *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Lagos, Nigeria"
+                      value={form.nomineeLocation}
+                      onChange={e => set('nomineeLocation', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Key Achievement *</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe their single most impressive achievement — a milestone, a number, a breakthrough. Be specific."
+                    value={form.achievement}
+                    onChange={e => set('achievement', e.target.value)}
+                    className={inputClass + " resize-none"}
+                  />
+                  <p className="text-[10px] text-zinc-600 mt-1">e.g. Raised $3M, serves 50,000 users, launched in 6 countries</p>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Business Impact *</label>
+                  <textarea
+                    rows={3}
+                    placeholder="How has their work changed lives, created jobs, or moved an industry? What problem are they solving at scale?"
+                    value={form.impact}
+                    onChange={e => set('impact', e.target.value)}
+                    className={inputClass + " resize-none"}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Website or Social Media</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. linkedin.com/in/adaeze or @adaeze on X"
+                    value={form.socialOrWebsite}
+                    onChange={e => set('socialOrWebsite', e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 2 — Nominator Details ────────────────────── */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl px-5 py-4 mb-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Nominating</p>
+                  <p className="text-white font-black">{form.nomineeName}</p>
+                  <p className="text-zinc-500 text-xs">{form.nomineeCompany} · {form.nomineeIndustry}</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className={labelClass}>Your Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      value={form.nominatorName}
+                      onChange={e => set('nominatorName', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Your Email *</label>
+                    <input
+                      type="email"
+                      placeholder="you@email.com"
+                      value={form.nominatorEmail}
+                      onChange={e => set('nominatorEmail', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Your Relationship to the Nominee *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Colleague, Investor, Mentor, Community member"
+                    value={form.relationship}
+                    onChange={e => set('relationship', e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div
+                    onClick={() => set('consent', !form.consent)}
+                    className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer ${
+                      form.consent ? 'bg-amber-500 border-amber-500' : 'border-zinc-600 group-hover:border-zinc-400'
+                    }`}
+                  >
+                    {form.consent && <span className="text-black text-xs font-black">✓</span>}
+                  </div>
+                  <span className="text-zinc-400 text-xs leading-relaxed">
+                    I confirm that the information provided is accurate to the best of my knowledge,
+                    and I consent to BusinessRun contacting me regarding this nomination.
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* ── Error message ─────────────────────────────────── */}
+            {error && (
+              <div className="flex items-center gap-2 mt-5 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-xs font-medium">{error}</p>
+              </div>
+            )}
+
+            {/* ── Actions ───────────────────────────────────────── */}
+            <div className="flex gap-3 mt-8">
+              {step === 2 && (
+                <button
+                  onClick={() => { setStep(1); setError(''); }}
+                  className="px-6 py-3 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-xl text-xs font-black uppercase tracking-widest transition"
+                >
+                  Back
+                </button>
+              )}
+              {step === 1 && (
+                <button
+                  onClick={handleNext}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95"
+                >
+                  Next — Your Details <ArrowRight size={14} />
+                </button>
+              )}
+              {step === 2 && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95 disabled:opacity-50"
+                >
+                  {submitting
+                    ? <><Loader2 size={14} className="animate-spin" /> Submitting...</>
+                    : <><Send size={14} /> Submit Nomination</>
+                  }
+                </button>
+              )}
+            </div>
+
+            <p className="text-[10px] text-zinc-700 text-center mt-4 uppercase tracking-widest">
+              Nominations close 30th June 2026 · All submissions are reviewed by the editorial team
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Top30Page
 // ─────────────────────────────────────────────────────────────────
 export default function Top30Page({ onBack }) {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [activeCategory, setActiveCategory]   = useState('All');
+  const [selectedPerson, setSelectedPerson]   = useState(null);
+  const [nominationOpen, setNominationOpen]   = useState(false);
 
   const filtered = honorees.filter(
     h => activeCategory === 'All' || h.category === activeCategory
@@ -420,6 +842,11 @@ export default function Top30Page({ onBack }) {
           person={selectedPerson}
           onClose={() => setSelectedPerson(null)}
         />
+      )}
+
+      {/* Nomination modal */}
+      {nominationOpen && (
+        <NominationModal onClose={() => setNominationOpen(false)} />
       )}
 
       {/* ── Breadcrumb ───────────────────────────────────────── */}
@@ -582,7 +1009,10 @@ export default function Top30Page({ onBack }) {
             Nominations for the 2026 Class are now open. We are looking for
             the next generation of builders shaping Africa's future.
           </p>
-          <button className="group relative px-10 py-4 bg-zinc-900 border border-zinc-800 text-zinc-100 font-bold uppercase text-xs tracking-[0.25em] overflow-hidden rounded-xl hover:border-amber-500 transition-colors duration-300">
+          <button
+            onClick={() => setNominationOpen(true)}
+            className="group relative px-10 py-4 bg-zinc-900 border border-zinc-800 text-zinc-100 font-bold uppercase text-xs tracking-[0.25em] overflow-hidden rounded-xl hover:border-amber-500 transition-colors duration-300"
+          >
             <span className="relative z-10 group-hover:text-black transition-colors duration-300">Nominate Now</span>
             <div className="absolute inset-0 bg-amber-500 rounded-xl transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
           </button>
