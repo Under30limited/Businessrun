@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // ─────────────────────────────────────────────────────────────
 // Data
@@ -1028,17 +1029,28 @@ function MagazineReader({ mag, onClose }) {
 // ─────────────────────────────────────────────────────────────
 // MagazinePage
 // ─────────────────────────────────────────────────────────────
-export default function MagazinePage({ onBack, openStoryId = null }) {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [openMag, setOpenMag]               = useState(null);
+export default function MagazinePage({ onBack }) {
+  const navigate        = useNavigate();
+  const { articleId }   = useParams();
 
-  // If launched with a specific story id, open it immediately
-  useEffect(() => {
-    if (openStoryId) {
-      const found = MAGAZINES.find(m => m.id === openStoryId);
-      if (found) setOpenMag(found);
-    }
-  }, [openStoryId]);
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  // Derive which article is open directly from the URL param — no local state needed
+  const openMag = articleId
+    ? MAGAZINES.find(m => m.id === parseInt(articleId, 10)) ?? null
+    : null;
+
+  // Opening an article — push URL to /magazine/article/:id
+  function handleOpenMag(mag) {
+    navigate(`/magazine/article/${mag.id}`);
+    window.scrollTo(0, 0);
+  }
+
+  // Closing an article — go back to /magazine list
+  function handleCloseMag() {
+    navigate('/magazine');
+    window.scrollTo(0, 0);
+  }
 
   // Google Fonts
   useEffect(() => {
@@ -1056,7 +1068,7 @@ export default function MagazinePage({ onBack, openStoryId = null }) {
   return (
     <>
       {openMag && (
-        <MagazineReader mag={openMag} onClose={() => setOpenMag(null)} />
+        <MagazineReader mag={openMag} onClose={handleCloseMag} />
       )}
 
       <div className="min-h-screen pb-24" style={{ backgroundColor: '#fcfcfc', fontFamily: 'Inter, sans-serif' }}>
@@ -1115,7 +1127,7 @@ export default function MagazinePage({ onBack, openStoryId = null }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
               {filtered.map(mag => (
-                <MagazineCard key={mag.id} mag={mag} onOpen={setOpenMag} />
+                <MagazineCard key={mag.id} mag={mag} onOpen={handleOpenMag} />
               ))}
             </div>
           )}
