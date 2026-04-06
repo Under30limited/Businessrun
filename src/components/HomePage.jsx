@@ -178,7 +178,7 @@ export default function HomePage({
 
           {/* Register Your Business → WhatsApp */}
           <a
-            href="https://wa.me/2348159346026"
+            href="https://wa.me/2347044450636"
             target="_blank"
             rel="noopener noreferrer"
             className="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between block"
