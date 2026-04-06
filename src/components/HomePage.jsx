@@ -18,8 +18,7 @@ export default function HomePage({
   }, []);
 
   // Terminal Feed stories — each id maps to a specific magazine issue
-  // id 19 = The Big 3 Cold War | id 21 = The Livestream Economy (Peller)
-  // id 20 = Nigeria's Unicorn Factory | id 18 = Asake's ₦441M Gift
+  // id 19 = The Big 3 Cold War | id 20 = Nigeria's Unicorn Factory
   const stories = [
     {
       id: 19,
@@ -30,28 +29,12 @@ export default function HomePage({
       readTime: '10 min',
     },
     {
-      id: 21,
-      category: 'Creator Economy',
-      headline: 'How Peller Turned a Livestream Into a 19-State Business Tour',
-      excerpt: 'A 21-year-old with a smartphone, a Kick deal and Moremonee Bank backing is proving that Nigerian creators can build real businesses from the ground up — live, in real time.',
-      author: 'Kelechi Eze',
-      readTime: '9 min',
-    },
-    {
       id: 20,
       category: 'Startups',
       headline: 'Nigeria\'s Unicorn Factory: Inside Africa\'s Biggest Tech Bet',
       excerpt: 'Moniepoint, Chowdeck, Flutterwave — with 205 deals and $343M raised in a single year, Lagos is minting billion-dollar companies faster than anywhere else on the continent.',
       author: 'Taiwo Bankole',
       readTime: '8 min',
-    },
-    {
-      id: 18,
-      category: 'Money & Culture',
-      headline: 'Asake Spent ₦441M in One Week on His Parents. Here\'s the Business Case.',
-      excerpt: 'A Toyota Land Cruiser Prado for Dad. A Mercedes-Benz G-Wagon Brabus for Mum. The numbers behind the viral moment — and what it tells us about the new Afrobeats economy.',
-      author: 'TBR Editorial',
-      readTime: '7 min',
     },
   ];
 
@@ -189,63 +172,13 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* ── Magazine Headlines ───────────────────────────────── */}
-      <section id="magazine" className="max-w-7xl mx-auto px-6 py-24 border-t border-zinc-900">
-        <div className="flex items-center justify-between mb-16">
-          <div className="flex items-center gap-4">
-            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Terminal Feed</h2>
-            <div className="h-[2px] w-12 bg-amber-500/50" />
-          </div>
-          <button
-            onClick={onMagazineClick}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-amber-500 flex items-center gap-2 group transition-all"
-          >
-            Full Archive <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {stories.map(story => (
-            <button
-              key={story.id}
-              onClick={() => onMagazineStoryClick(story.id)}
-              className="group cursor-pointer text-left relative p-8 bg-zinc-950 border border-zinc-900 rounded-[2rem] hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-500 w-full"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  {story.category}
-                </span>
-                <span className="text-[9px] text-zinc-600 font-black uppercase tracking-widest flex items-center gap-1">
-                  <Clock size={10} /> {story.readTime}
-                </span>
-              </div>
-              <h3 className="text-2xl font-black leading-tight mb-4 group-hover:text-amber-500 transition-colors duration-300">
-                {story.headline}
-              </h3>
-              <p className="text-zinc-500 text-sm leading-relaxed mb-8 max-w-lg">
-                {story.excerpt}
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-zinc-800 flex items-center justify-center text-[7px] font-black text-zinc-500">TBR</div>
-                  <span className="text-[10px] text-zinc-600 font-bold tracking-tight uppercase">{story.author}</span>
-                </div>
-                <div className="bg-zinc-800 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all group-hover:bg-amber-500 group-hover:text-black">
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
       {/* ── Feature Grid ─────────────────────────────────────── */}
       <section className="px-6 py-12 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 
           {/* Register Your Business → WhatsApp */}
           <a
-            href="https://wa.me/2347044450636"
+            href="https://wa.me/2348159346026"
             target="_blank"
             rel="noopener noreferrer"
             className="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between block"
@@ -301,6 +234,10 @@ export default function HomePage({
           </button>
         </div>
 
+      </section>
+
+      {/* ── AI Advisor ───────────────────────────────────────────────────────── */}
+      <section className="px-6 pb-12 max-w-7xl mx-auto">
         {/* ── AI Advisor ─────────────────────────────────────── */}
         <div id="ai-advisor" className="bg-zinc-900/60 border border-zinc-800 rounded-[2.5rem] overflow-hidden grid grid-cols-1 lg:grid-cols-2 shadow-2xl">
           <div className="p-10 flex flex-col justify-center">
@@ -414,6 +351,56 @@ export default function HomePage({
               </button>
             </form>
           </div>
+        </div>
+      </section>
+
+      {/* ── Magazine Headlines ───────────────────────────────── */}
+      <section id="magazine" className="max-w-7xl mx-auto px-6 py-24 border-t border-zinc-900">
+        <div className="flex items-center justify-between mb-16">
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Terminal Feed</h2>
+            <div className="h-[2px] w-12 bg-amber-500/50" />
+          </div>
+          <button
+            onClick={onMagazineClick}
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-amber-500 flex items-center gap-2 group transition-all"
+          >
+            Full Archive <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {stories.map(story => (
+            <button
+              key={story.id}
+              onClick={() => onMagazineStoryClick(story.id)}
+              className="group cursor-pointer text-left relative p-8 bg-zinc-950 border border-zinc-900 rounded-[2rem] hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-500 w-full"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                  {story.category}
+                </span>
+                <span className="text-[9px] text-zinc-600 font-black uppercase tracking-widest flex items-center gap-1">
+                  <Clock size={10} /> {story.readTime}
+                </span>
+              </div>
+              <h3 className="text-2xl font-black leading-tight mb-4 group-hover:text-amber-500 transition-colors duration-300">
+                {story.headline}
+              </h3>
+              <p className="text-zinc-500 text-sm leading-relaxed mb-8 max-w-lg">
+                {story.excerpt}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-zinc-800 flex items-center justify-center text-[7px] font-black text-zinc-500">TBR</div>
+                  <span className="text-[10px] text-zinc-600 font-bold tracking-tight uppercase">{story.author}</span>
+                </div>
+                <div className="bg-zinc-800 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all group-hover:bg-amber-500 group-hover:text-black">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
