@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight, Bot, User, Send, Sparkles, Loader2,
+  ArrowRight, Bot, User, Send, Sparkles, Loader2, Calculator,
   FileText, Briefcase, Layers, Clock, ArrowUpRight,
   ChevronRight, Trophy, RefreshCcw
 } from 'lucide-react';
 
 export default function HomePage({
   onMagazineClick, onMagazineStoryClick, onToolsClick, onUnder30Click,
-  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick,
+  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick, onAccountingClick,
 }) {
   const words = ['Build.', 'Scale.', 'Create Wealth.'];
   const [wordIndex, setWordIndex] = useState(0);
@@ -174,7 +174,7 @@ export default function HomePage({
 
       {/* ── Feature Grid ─────────────────────────────────────── */}
       <section className="px-6 py-12 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
 
           {/* Register Your Business → WhatsApp */}
           <a
@@ -230,6 +230,25 @@ export default function HomePage({
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-white group-hover:gap-4 transition-all">
               Access Pack <ArrowRight size={14} />
+            </span>
+          </button>
+
+          {/* Accounting Tools → AccountingTools page */}
+          <button
+            onClick={onAccountingClick}
+            className="group text-left bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-6 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
+                <Calculator size={28} />
+              </div>
+              <h3 className="text-2xl font-black mb-3 italic uppercase tracking-tight">Accounting Tools</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                AI-powered ledgers, income statements, balance sheets and cash flow reports built for Nigerian SMEs.
+              </p>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-amber-500 group-hover:gap-4 transition-all">
+              Open Tools <ArrowRight size={14} />
             </span>
           </button>
         </div>
