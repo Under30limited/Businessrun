@@ -2,15 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import LivePriceDropdown, { MARKET_DATA, MobilePriceSection } from './LivePriceDropdown';
 
-function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeClick, onResourcesClick, onMagazineClick, onToolsClick }) {
+function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeClick, onResourcesClick, onMagazineClick, onToolsClick, onAccountingClick }) {
   const [under30Open, setUnder30Open]         = useState(false);
+  const [toolsOpen,   setToolsOpen]           = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
   const [mobilePriceOpen, setMobilePriceOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const toolsRef    = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setUnder30Open(false);
+      if (toolsRef.current    && !toolsRef.current.contains(e.target))    setToolsOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -39,7 +43,25 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
         {/* Desktop nav */}
         <div className="hidden md:flex items-center space-x-8 text-[11px] font-black uppercase tracking-widest text-zinc-500">
           <button onClick={onMagazineClick}  className="hover:text-amber-500 transition focus:outline-none">Magazine</button>
-          <button onClick={onToolsClick}     className="hover:text-amber-500 transition focus:outline-none">Tools</button>
+          {/* Tools dropdown */}
+          <div className="relative" ref={toolsRef}>
+            <button onClick={() => setToolsOpen(p => !p)} className="flex items-center gap-1 hover:text-amber-500 transition focus:outline-none">
+              Tools
+              <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`}></i>
+            </button>
+            {toolsOpen && (
+              <div className="absolute top-full left-0 mt-3 w-56 bg-zinc-950 rounded-2xl shadow-2xl border border-zinc-800 py-2 z-50">
+                <button onClick={() => { setToolsOpen(false); onToolsClick(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-400 font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-amber-500 transition">
+                  <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-calculator text-xs"></i></span>
+                  Profit & Tax Hub
+                </button>
+                <button onClick={() => { setToolsOpen(false); onAccountingClick(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-400 font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-amber-500 transition">
+                  <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-book text-xs"></i></span>
+                  Accounting Tools
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={onResourcesClick} className="hover:text-amber-500 transition focus:outline-none">Resources</button>
 
           {/* Under30 dropdown */}
@@ -54,8 +76,8 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
                   <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-rocket text-xs"></i></span>
                   Under30Women
                 </button>
-		<button onClick={() => { setUnder30Open(false); onTop30Click(); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-400 font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-amber-500 transition">
-                  <span className="w-7 h-7 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
+                <button disabled className="w-full text-left flex items-center gap-3 px-4 py-3 text-xs text-zinc-700 font-bold uppercase tracking-widest cursor-not-allowed">
+                  <span className="w-7 h-7 bg-zinc-900 text-zinc-700 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-trophy text-xs"></i></span>
                   Top 30 List
                 </button>
               </div>
@@ -85,9 +107,31 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
           <button onClick={() => { setMobileMenuOpen(false); onMagazineClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
             <i className="fas fa-book-open w-4 text-zinc-600"></i> Magazine
           </button>
-          <button onClick={() => { setMobileMenuOpen(false); onToolsClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
-            <i className="fas fa-calculator w-4 text-zinc-600"></i> Tools
-          </button>
+          {/* Tools mobile accordion */}
+          <div className="pt-1 border-t border-zinc-900 mt-1">
+            <button
+              onClick={() => setMobileToolsOpen(p => !p)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition"
+            >
+              <div className="flex items-center gap-3">
+                <i className="fas fa-calculator w-4 text-zinc-600"></i>
+                <span>Tools</span>
+              </div>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${mobileToolsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {mobileToolsOpen && (
+              <div className="mx-2 mb-2 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800">
+                <button onClick={() => { setMobileMenuOpen(false); setMobileToolsOpen(false); onToolsClick(); }} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-800 hover:text-amber-500 transition text-left border-b border-zinc-800">
+                  <span className="w-6 h-6 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-calculator text-xs"></i></span>
+                  Profit & Tax Hub
+                </button>
+                <button onClick={() => { setMobileMenuOpen(false); setMobileToolsOpen(false); onAccountingClick(); }} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-800 hover:text-amber-500 transition text-left">
+                  <span className="w-6 h-6 bg-zinc-800 text-zinc-500 rounded-lg flex items-center justify-center flex-shrink-0"><i className="fas fa-book text-xs"></i></span>
+                  Accounting Tools
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={() => { setMobileMenuOpen(false); onResourcesClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
             <i className="fas fa-book w-4 text-zinc-600"></i> Resources
           </button>
