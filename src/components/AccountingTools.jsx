@@ -74,7 +74,7 @@ export default function AccountingTools({ onBack }) {
     setReport(null);
 
     try {
-      const response = await fetch('/functions/accounting', {
+      const response = await fetch('/accounting', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactions, activeTool }),
