@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 import Navbar            from './components/Navbar';
 import HomePage          from './components/HomePage';
-import ToolsPage         from './components/ToolsPage';
+import ProfitTaxPage     from './components/ToolsPage';
+import AccountingTools   from './components/AccountingTools';
 import Under30App        from './components/Under30App';
 import Top30Page         from './components/Top30Page';
 import ReceiptGenerator  from './components/ReceiptGenerator';
@@ -12,9 +13,41 @@ import LivePricePage     from './components/LivePricePage';
 import SubscribeModal    from './components/SubscribeModal';
 import AnnouncementPopup from './components/AnnouncementPopup';
 
+// ── Page title map ────────────────────────────────────────────────
+const BASE_TITLE = 'BusinessRun | The Pulse of African Enterprise';
+
+const ROUTE_TITLES = {
+  '/':        BASE_TITLE,
+  '/tools':   'Profit & Tax Hub | BusinessRun',
+  '/tools/accounting': 'Accounting Tools | BusinessRun',
+  '/under30': 'Under30Women | BusinessRun',
+  '/top30':   'Top 30 | BusinessRun',
+  '/receipt': 'Receipt Generator | BusinessRun',
+  '/magazine':'Magazine | BusinessRun',
+  '/prices':  'Market Prices | BusinessRun',
+};
+
+function usePageTitle() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    // Article route — /magazine/article/:id
+    if (path.startsWith('/magazine/article/')) {
+      document.title = 'Article | BusinessRun Magazine';
+      return;
+    }
+
+    document.title = ROUTE_TITLES[path] ?? BASE_TITLE;
+  }, [location.pathname]);
+}
+
 function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  usePageTitle(); // updates browser tab on every route change
 
   const [subscribeOpen,  setSubscribeOpen]  = useState(false);
   const [activeResource, setActiveResource] = useState(null);
@@ -24,7 +57,8 @@ function AppInner() {
   function closeSubscribe()     { setSubscribeOpen(false); setActiveResource(null); }
 
   function goHome()    { navigate('/');        window.scrollTo(0, 0); }
-  function goTools()   { navigate('/tools');   window.scrollTo(0, 0); }
+  function goTools()       { navigate('/tools');             window.scrollTo(0, 0); }
+  function goAccounting()  { navigate('/tools/accounting'); window.scrollTo(0, 0); }
   function goUnder30() { navigate('/under30'); window.scrollTo(0, 0); }
   function goTop30()   { navigate('/top30');   window.scrollTo(0, 0); }
   function goReceipt() { navigate('/receipt'); window.scrollTo(0, 0); }
@@ -50,6 +84,7 @@ function AppInner() {
         onLogoClick={goHome}
         onMagazineClick={goMagazine}
         onToolsClick={goTools}
+        onAccountingClick={goAccounting}
         onResourcesClick={() => openResourceModal('Pitch Deck Template')}
         onUnder30WomenClick={goUnder30}
         onTop30Click={goTop30}
@@ -65,6 +100,7 @@ function AppInner() {
                 onMagazineClick={goMagazine}
                 onMagazineStoryClick={goMagazineStory}
                 onToolsClick={goTools}
+                onAccountingClick={goAccounting}
                 onUnder30Click={goUnder30}
                 onTop30Click={goTop30}
                 onReceiptClick={goReceipt}
@@ -73,7 +109,8 @@ function AppInner() {
               />
             }
           />
-          <Route path="/tools"   element={<ToolsPage       onBack={goHome} />} />
+          <Route path="/tools"             element={<ProfitTaxPage    onBack={goHome} />} />
+          <Route path="/tools/accounting"  element={<AccountingTools  onBack={goHome} />} />
           <Route path="/under30" element={<Under30App       onBack={goHome} />} />
           <Route path="/top30"   element={<Top30Page        onBack={goHome} />} />
           <Route path="/receipt" element={<ReceiptGenerator onBack={goHome} />} />
