@@ -41,7 +41,7 @@ export async function onRequestPost(context) {
     `Do not include any text outside the JSON object.`;
 
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-lite-preview:generateContent?key=${apiKey}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
 
   try {
     const geminiRes = await fetch(geminiUrl, {
