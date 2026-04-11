@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-const SUBSCRIBE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec';
+// 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec'
+// Capital Club signups — paste your Subscribe.gs web app URL here
+const CAPITAL_CLUB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec';
+
+// Resource requests (Pitch Deck, Money-Ready Kit etc.) — paste your Resource.gs web app URL here
+const RESOURCE_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwV0Wj1uGqV1tLHzpjksuAQNZ9uvEcS_POV2sZby3FT9B_cwaQEz-nYnpjvlPQrbPEuPA/exec';
 
 export default function SubscribeModal({ isOpen, onClose, resource = null }) {
   const [email, setEmail]           = useState('');
@@ -31,15 +36,25 @@ export default function SubscribeModal({ isOpen, onClose, resource = null }) {
     setSubmitting(true);
     setError('');
     try {
-      await fetch(SUBSCRIBE_ENDPOINT, {
+      const endpoint = resource ? RESOURCE_ENDPOINT : CAPITAL_CLUB_ENDPOINT;
+      await fetch(endpoint, {
         method:  'POST',
         mode:    'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          subscribedAt: new Date().toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }),
-          source: 'businessrun-website',
-        }),
+        body: JSON.stringify(
+          resource
+            ? {
+                email,
+                resource,
+                requestedAt: new Date().toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }),
+                source: 'businessrun-resource-request',
+              }
+            : {
+                email,
+                subscribedAt: new Date().toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }),
+                source: 'businessrun-capital-club',
+              }
+        ),
       });
       setSubmitted(true);
     } catch (err) {
@@ -75,7 +90,7 @@ export default function SubscribeModal({ isOpen, onClose, resource = null }) {
               </h3>
               <p className="text-zinc-400 text-sm mb-6">
                 {resource
-                  ? <>The <strong className="text-zinc-200">{resource}</strong> will be sent to your inbox.</>
+                  ? <>The <strong className="text-zinc-200">{resource}</strong> is being sent to your inbox right now.</>
                   : <>Your request has been sent and received. Welcome — a member of the <strong className="text-zinc-200">Capital Club</strong> team will be in touch shortly.</>}
               </p>
               <button onClick={handleClose} className="bg-amber-500 text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition">Done</button>
