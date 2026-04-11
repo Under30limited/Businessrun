@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec'
 // Capital Club signups — paste your Subscribe.gs web app URL here
 const CAPITAL_CLUB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKsuBzCUKjylb8BXlJtouXZXeXyZseQpqDyihdWP-T4TCzxQJNqIpKXa7bYshSb_6V/exec';
 
@@ -90,7 +89,7 @@ export default function SubscribeModal({ isOpen, onClose, resource = null }) {
               </h3>
               <p className="text-zinc-400 text-sm mb-6">
                 {resource
-                  ? <>The <strong className="text-zinc-200">{resource}</strong> is being sent to your inbox right now.</>
+                  ? <>The <strong className="text-zinc-200">{resource}</strong> will be sent to your inbox.</>
                   : <>Your request has been sent and received. Welcome — a member of the <strong className="text-zinc-200">Capital Club</strong> team will be in touch shortly.</>}
               </p>
               <button onClick={handleClose} className="bg-amber-500 text-black px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition">Done</button>
