@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, Bot, User, Send, Sparkles, Loader2, Calculator,
   FileText, Briefcase, Layers, Clock, ArrowUpRight,
-  ChevronRight, Trophy, RefreshCcw
+  ChevronRight, Trophy, RefreshCcw, Zap
 } from 'lucide-react';
 
 export default function HomePage({
   onMagazineClick, onMagazineStoryClick, onToolsClick, onUnder30Click,
-  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick, onAccountingClick,
+  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick, onAccountingClick, onMogulAuditClick,
 }) {
   const words = ['Build.', 'Scale.', 'Create Wealth.'];
   const [wordIndex, setWordIndex] = useState(0);
@@ -420,6 +420,61 @@ export default function HomePage({
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* ── Mogul Audit CTA ──────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="relative bg-black border border-zinc-800 rounded-[3rem] overflow-hidden">
+
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10 p-10 md:p-14">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
+                  Free Audit
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
+                  16 Questions · 4 Pillars
+                </span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tighter italic uppercase text-white mb-4 leading-none">
+                Are You Really<br />Running a Business<br />
+                <span className="text-amber-500">— or Just Busy?</span>
+              </h2>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-2">
+                Most Nigerian founders are working hard but scoring low where it counts — registration, systems, margins, and growth moves. Take the Mogul Audit and find out exactly where you stand.
+              </p>
+              <p className="text-zinc-600 text-xs uppercase tracking-widest font-black">
+                Get your rank: Nomad → Operator → Scaler → Mogul
+              </p>
+            </div>
+
+            <div className="shrink-0 flex flex-col items-center gap-4">
+              {/* Score preview bubbles */}
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                {['Foundation', 'Operations', 'Execution', 'Growth'].map((p, i) => (
+                  <div key={p} className="w-24 h-24 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center">
+                    <span className="text-xl mb-1">
+                      {['🏛️','⚙️','⚔️','📈'][i]}
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center leading-tight">
+                      {p}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={onMogulAuditClick}
+                className="group relative w-full flex items-center justify-center gap-2 px-10 py-4 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-amber-400 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+              >
+                <Zap size={15} />
+                Start the Audit
+              </button>
+              <p className="text-[10px] text-zinc-700 uppercase tracking-widest">
+                Free · Takes 3 minutes · Get a shareable card
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
