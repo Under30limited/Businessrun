@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
-  FileText, Sparkles, Plus, Trash2, Download,
-  Printer, Building2, User, Settings2, Zap
+  FileText, Plus, Trash2, Download,
+  Printer, Building2, User, Settings2, Image, X
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -22,15 +22,17 @@ function newInvoiceNumber() {
 // ReceiptGenerator
 // ─────────────────────────────────────────────────────────────
 export default function ReceiptGenerator({ onBack }) {
-  const printRef = useRef();
+  const printRef  = useRef();
+  const logoInput = useRef();
 
-  const [aiInput, setAiInput]       = useState('');
-  const [aiLoading, setAiLoading]   = useState(false);
-  const [aiError, setAiError]       = useState('');
+  // ── Logo state ──────────────────────────────────────────────
+  const [logo,        setLogo]        = useState(null);      // base64 data URL
+  const [logoPosition, setLogoPosition] = useState('left');  // 'left' | 'center' | 'right'
+  const [logoSize,     setLogoSize]     = useState(80);      // px height — 40 to 160
 
   const [data, setData] = useState({
     invoiceNumber: newInvoiceNumber(),
-    date: new Date().toISOString().split('T')[0],
+    date:          new Date().toISOString().split('T')[0],
     sender: {
       name:    'Your Business Name',
       address: '123 Business Way, Lagos',
@@ -41,10 +43,10 @@ export default function ReceiptGenerator({ onBack }) {
       name:  'Client Name',
       email: 'client@example.com',
     },
-    items: [{ description: 'Consultation Fee', quantity: 1, rate: 15000 }],
-    taxRate:  7.5,
-    currency: 'NGN',
-    notes:    'Thank you for your business!',
+    items:     [{ description: 'Consultation Fee', quantity: 1, rate: 15000 }],
+    taxRate:   7.5,
+    currency:  'NGN',
+    notes:     'Thank you for your business!',
     signatory: '',
   });
 
@@ -56,7 +58,7 @@ export default function ReceiptGenerator({ onBack }) {
   // ── Item helpers ────────────────────────────────────────────
   function updateItem(idx, field, val) {
     const items = [...data.items];
-    items[idx] = { ...items[idx], [field]: field === 'description' ? val : parseFloat(val) || 0 };
+    items[idx]  = { ...items[idx], [field]: field === 'description' ? val : parseFloat(val) || 0 };
     setData(d => ({ ...d, items }));
   }
 
@@ -69,59 +71,27 @@ export default function ReceiptGenerator({ onBack }) {
     setData(d => ({ ...d, items: d.items.filter((_, i) => i !== idx) }));
   }
 
-  // ── AI Fill ─────────────────────────────────────────────────
-  async function handleAIFill() {
-    if (!aiInput.trim()) return;
-    setAiLoading(true);
-    setAiError('');
-
-    const systemPrompt = `You are a receipt/invoice data extractor. 
-Extract invoice details from the user's plain-text description and return ONLY a valid JSON object with this exact shape:
-{
-  "client": { "name": "string", "email": "string" },
-  "items": [{ "description": "string", "quantity": number, "rate": number }],
-  "currency": "NGN" | "USD" | "GBP" | "EUR",
-  "notes": "string"
-}
-Rules:
-- If currency is not mentioned, default to NGN.
-- If email is not mentioned, leave it as empty string.
-- Convert any shorthand amounts (e.g. "50k" = 50000, "2m" = 2000000).
-- Return ONLY raw JSON, no markdown, no explanation.`;
-
-    // Proxy URL — paste your deployed Apps Script /exec URL below
-    const PROXY_URL = 'PASTE_YOUR_RECEIPT_APPS_SCRIPT_URL_HERE';
-
-    try {
-      const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type:    'ai_fill',
-          message: aiInput,
-          system:  systemPrompt,
-        }),
-      });
-
-      const result = await response.json();
-      const raw    = result.text || '';
-      const clean  = raw.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-
-      setData(d => ({
-        ...d,
-        client:   { ...d.client,   ...(parsed.client || {}) },
-        items:    parsed.items?.length ? parsed.items : d.items,
-        currency: parsed.currency || d.currency,
-        notes:    parsed.notes    || d.notes,
-      }));
-      setAiInput('');
-    } catch (err) {
-      setAiError('Could not parse. Please try rephrasing.');
-    } finally {
-      setAiLoading(false);
-    }
+  // ── Logo upload ─────────────────────────────────────────────
+  function handleLogoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setLogo(ev.target.result);
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-uploaded if needed
+    e.target.value = '';
   }
+
+  function removeLogo() {
+    setLogo(null);
+  }
+
+  // ── Logo alignment class on the receipt canvas ──────────────
+  const logoAlignClass = {
+    left:   'justify-start',
+    center: 'justify-center',
+    right:  'justify-end',
+  }[logoPosition];
 
   // ── Print / PDF ─────────────────────────────────────────────
   function handlePrint() {
@@ -133,12 +103,8 @@ Rules:
     <>
       {/* Print-only styles */}
       <style>{`
-        @page {
-          margin: 0;
-          size: A4;
-        }
+        @page { margin: 0; size: A4; }
         @media print {
-          /* Hide everything except the canvas */
           body * { visibility: hidden !important; }
           #receipt-canvas, #receipt-canvas * { visibility: visible !important; }
           #receipt-canvas {
@@ -150,7 +116,6 @@ Rules:
             border-radius: 0 !important;
             border: none !important;
           }
-          /* Suppress browser-injected header (title, URL) and footer (page number, date) */
           html {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -170,7 +135,6 @@ Rules:
               <span className="text-zinc-700">/</span>
               <span className="text-zinc-200 font-black shrink-0">Receipt Generator</span>
             </div>
-            {/* Action buttons */}
             <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
               <div className="flex items-center gap-2">
                 <button
@@ -199,38 +163,109 @@ Rules:
           {/* ── Left: Editor ───────────────────────────────── */}
           <div className="xl:col-span-4 space-y-4">
 
-            {/* AI Fill card */}
-            <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl text-white relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 opacity-5">
-                <Sparkles size={96} />
-              </div>
-              <div className="relative z-10">
-                <h3 className="font-bold text-sm mb-1 flex items-center gap-2">
-                  <Sparkles size={14} className="text-zinc-700" /> AI Fill
-                </h3>
-                <p className="text-zinc-400 text-xs mb-3 leading-relaxed">
-                  Describe the transaction in plain English — AI will fill in the details automatically.
-                </p>
-                <textarea
-                  value={aiInput}
-                  onChange={e => setAiInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAIFill(); }}
-                  placeholder="e.g. Bill Adaeze 75k for branding work, 2 logo designs at 25k each and brand guide at 25k"
-                  className="w-full bg-white/10 border border-white/15 rounded-xl p-3 text-sm placeholder:text-zinc-500 outline-none focus:bg-white/15 transition resize-none h-24 mb-3 text-white"
-                />
-                {aiError && <p className="text-red-400 text-xs mb-2">{aiError}</p>}
+            {/* ── Logo Upload ── */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+              <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.18em] mb-4 flex items-center gap-2">
+                <Image size={11} /> Business Logo
+                <span className="text-zinc-700 font-medium normal-case tracking-normal text-[9px]">— optional</span>
+              </h4>
+
+              {/* Upload area */}
+              {!logo ? (
                 <button
-                  onClick={handleAIFill}
-                  disabled={aiLoading || !aiInput.trim()}
-                  className="w-full bg-amber-500 text-black py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-amber-400 transition disabled:opacity-40 flex items-center justify-center gap-2"
+                  onClick={() => logoInput.current.click()}
+                  className="w-full border-2 border-dashed border-zinc-800 hover:border-amber-500/50 rounded-xl py-6 flex flex-col items-center justify-center gap-2 transition-all group"
                 >
-                  {aiLoading
-                    ? <><svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Analyzing...</>
-                    : <><Sparkles size={13} /> Auto-Fill Details</>
-                  }
+                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center group-hover:bg-amber-500/10 transition">
+                    <Image size={18} className="text-zinc-600 group-hover:text-amber-500 transition" />
+                  </div>
+                  <p className="text-xs text-zinc-600 group-hover:text-zinc-400 transition">
+                    Click to upload logo
+                  </p>
+                  <p className="text-[10px] text-zinc-700">PNG, JPG or SVG — max 2MB</p>
                 </button>
-                <p className="text-zinc-600 text-[10px] text-center mt-2">Cmd+Enter to submit</p>
-              </div>
+              ) : (
+                <div className="relative">
+                  <div className="w-full bg-zinc-900 rounded-xl p-4 flex items-center justify-center min-h-[80px]">
+                    <img
+                      src={logo}
+                      alt="Business logo preview"
+                      style={{ height: `${Math.min(logoSize, 64)}px`, maxWidth: "100%", objectFit: "contain" }}
+                    />
+                  </div>
+                  <button
+                    onClick={removeLogo}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition"
+                    title="Remove logo"
+                  >
+                    <X size={12} className="text-white" />
+                  </button>
+                  <button
+                    onClick={() => logoInput.current.click()}
+                    className="mt-2 w-full text-[10px] font-black text-zinc-600 hover:text-amber-500 uppercase tracking-widest transition text-center"
+                  >
+                    Change Logo
+                  </button>
+                </div>
+              )}
+              <input
+                ref={logoInput}
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+
+              {/* Logo position selector — only show when logo is uploaded */}
+              {logo && (
+                <div className="mt-4">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-600 block mb-2">
+                    Logo Position
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'left',   label: 'Left'   },
+                      { value: 'center', label: 'Centre' },
+                      { value: 'right',  label: 'Right'  },
+                    ].map(pos => (
+                      <button
+                        key={pos.value}
+                        onClick={() => setLogoPosition(pos.value)}
+                        className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          logoPosition === pos.value
+                            ? 'bg-amber-500 text-black'
+                            : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
+                        }`}
+                      >
+                        {pos.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Size slider */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
+                        Logo Size
+                      </label>
+                      <span className="text-[9px] font-black text-amber-500">{logoSize}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="30"
+                      max="160"
+                      step="5"
+                      value={logoSize}
+                      onChange={e => setLogoSize(Number(e.target.value))}
+                      className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-amber-500"
+                    />
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[9px] text-zinc-700">Small</span>
+                      <span className="text-[9px] text-zinc-700">Large</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Business Details */}
@@ -240,10 +275,10 @@ Rules:
               </h4>
               <div className="space-y-3">
                 {[
-                  { placeholder: 'Business Name',    key: 'name',    bold: true },
-                  { placeholder: 'Address',          key: 'address', bold: false },
-                  { placeholder: 'Email',            key: 'email',   bold: false },
-                  { placeholder: 'Phone',            key: 'phone',   bold: false },
+                  { placeholder: 'Business Name', key: 'name',    bold: true  },
+                  { placeholder: 'Address',        key: 'address', bold: false },
+                  { placeholder: 'Email',          key: 'email',   bold: false },
+                  { placeholder: 'Phone',          key: 'phone',   bold: false },
                 ].map(f => (
                   <input
                     key={f.key}
@@ -390,34 +425,51 @@ Rules:
               className="bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden"
             >
               {/* Header — dark block with white text */}
-              <div className="bg-zinc-900 px-8 sm:px-12 py-10 sm:py-12 flex flex-col sm:flex-row justify-between items-start gap-6">
-                <div>
-                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center mb-5">
-                    <span className="text-zinc-900 font-black text-sm">B</span>
+              <div className="bg-zinc-900 px-8 sm:px-12 py-10 sm:py-12">
+
+                {/* Logo row — only renders when logo is uploaded */}
+                {logo && (
+                  <div className={`flex ${logoAlignClass} mb-6`}>
+                    <img
+                      src={logo}
+                      alt="Business logo"
+                      style={{ height: `${logoSize}px`, maxWidth: "320px", objectFit: "contain" }}
+                    />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                    {data.sender.name || 'Your Business Name'}
-                  </h2>
-                  <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-xs">
-                    {data.sender.address}
-                  </p>
-                  {data.sender.email && (
-                    <p className="text-zinc-400 text-xs mt-0.5">{data.sender.email}</p>
-                  )}
-                  {data.sender.phone && (
-                    <p className="text-zinc-400 text-xs mt-0.5">{data.sender.phone}</p>
-                  )}
-                </div>
-                <div className="text-left sm:text-right shrink-0">
-                  <p className="text-4xl sm:text-5xl font-black tracking-tighter text-white/10 mb-3 select-none uppercase">
-                    Invoice
-                  </p>
-                  <p className="text-white font-bold text-base">{data.invoiceNumber}</p>
-                  <p className="text-zinc-400 text-xs uppercase tracking-widest mt-1">{data.date}</p>
+                )}
+
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+                  <div>
+                    {/* Show B placeholder only when no logo is uploaded */}
+                    {!logo && (
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center mb-5">
+                        <span className="text-zinc-900 font-black text-sm">B</span>
+                      </div>
+                    )}
+                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                      {data.sender.name || 'Your Business Name'}
+                    </h2>
+                    <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed max-w-xs">
+                      {data.sender.address}
+                    </p>
+                    {data.sender.email && (
+                      <p className="text-zinc-400 text-xs mt-0.5">{data.sender.email}</p>
+                    )}
+                    {data.sender.phone && (
+                      <p className="text-zinc-400 text-xs mt-0.5">{data.sender.phone}</p>
+                    )}
+                  </div>
+                  <div className="text-left sm:text-right shrink-0">
+                    <p className="text-4xl sm:text-5xl font-black tracking-tighter text-white/10 mb-3 select-none uppercase">
+                      Invoice
+                    </p>
+                    <p className="text-white font-bold text-base">{data.invoiceNumber}</p>
+                    <p className="text-zinc-400 text-xs uppercase tracking-widest mt-1">{data.date}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Client bar — light grey strip */}
+              {/* Client bar */}
               <div className="px-8 sm:px-12 py-5 bg-zinc-100 border-b border-zinc-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] block mb-1">Bill To</span>
@@ -431,7 +483,7 @@ Rules:
                 )}
               </div>
 
-              {/* Items table — white bg, black text */}
+              {/* Items table */}
               <div className="px-8 sm:px-12 py-8 bg-white">
                 <table className="w-full">
                   <thead>
@@ -455,7 +507,7 @@ Rules:
                 </table>
               </div>
 
-              {/* Totals + signature + notes — light grey footer */}
+              {/* Totals + signature + notes */}
               <div className="px-8 sm:px-12 py-8 bg-zinc-50 border-t border-zinc-200">
                 <div className="flex flex-col md:flex-row justify-end items-start gap-8">
                   <div className="w-full md:w-72 space-y-2.5">
@@ -476,14 +528,12 @@ Rules:
                   </div>
                 </div>
 
-                {/* Signature block */}
+                {/* Signature + notes */}
                 <div className="mt-10 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row justify-between items-end gap-8">
-                  {/* Notes */}
                   <div className="max-w-xs">
                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-1">Notes</p>
                     <p className="text-xs text-zinc-500 leading-relaxed italic">{data.notes}</p>
                   </div>
-                  {/* Signature */}
                   <div className="shrink-0 text-right min-w-[180px]">
                     <div className="border-b-2 border-zinc-900 w-48 mb-2 ml-auto" style={{ minHeight: '40px' }} />
                     <p className="text-xs font-bold text-zinc-900">
