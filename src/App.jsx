@@ -7,6 +7,7 @@ import ProfitTaxPage     from './components/ToolsPage';
 import AccountingTools   from './components/AccountingTools';
 import Under30App        from './components/Under30App';
 import Top30Page         from './components/Top30Page';
+import FoundersMight     from './components/FoundersMight';
 import ReceiptGenerator  from './components/ReceiptGenerator';
 import MagazinePage      from './components/MagazinePage';
 import LivePricePage     from './components/LivePricePage';
@@ -21,7 +22,8 @@ const ROUTE_TITLES = {
   '/tools':   'Profit & Tax Hub | BusinessRun',
   '/tools/accounting': 'Accounting Tools | BusinessRun',
   '/under30': 'Under30Women | BusinessRun',
-  '/top30':   'Top 30 | BusinessRun',
+  '/top30':          'Top 30 | BusinessRun',
+  '/mogul-audit':  'Mogul Audit | BusinessRun',
   '/receipt': 'Receipt Generator | BusinessRun',
   '/magazine':'Magazine | BusinessRun',
   '/prices':  'Market Prices | BusinessRun',
@@ -60,7 +62,8 @@ function AppInner() {
   function goTools()       { navigate('/tools');             window.scrollTo(0, 0); }
   function goAccounting()  { navigate('/tools/accounting'); window.scrollTo(0, 0); }
   function goUnder30() { navigate('/under30'); window.scrollTo(0, 0); }
-  function goTop30()   { navigate('/top30');   window.scrollTo(0, 0); }
+  function goTop30()       { navigate('/top30');        window.scrollTo(0, 0); }
+  function goMogulAudit()  { navigate('/mogul-audit'); window.scrollTo(0, 0); }
   function goReceipt() { navigate('/receipt'); window.scrollTo(0, 0); }
   function goMagazine(){ navigate('/magazine');window.scrollTo(0, 0); }
 
@@ -103,6 +106,7 @@ function AppInner() {
                 onAccountingClick={goAccounting}
                 onUnder30Click={goUnder30}
                 onTop30Click={goTop30}
+                onMogulAuditClick={goMogulAudit}
                 onReceiptClick={goReceipt}
                 onSubscribeClick={openSubscribe}
                 onResourceClick={openResourceModal}
@@ -112,7 +116,8 @@ function AppInner() {
           <Route path="/tools"             element={<ProfitTaxPage    onBack={goHome} />} />
           <Route path="/tools/accounting"  element={<AccountingTools  onBack={goHome} />} />
           <Route path="/under30" element={<Under30App       onBack={goHome} />} />
-          <Route path="/top30"   element={<Top30Page        onBack={goHome} />} />
+          <Route path="/top30"        element={<Top30Page     onBack={goHome} />} />
+          <Route path="/mogul-audit"  element={<FoundersMight onBack={goHome} />} />
           <Route path="/receipt" element={<ReceiptGenerator onBack={goHome} />} />
           <Route path="/prices"  element={<LivePricePage    onBack={goHome} />} />
 
