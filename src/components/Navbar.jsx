@@ -42,7 +42,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center space-x-8 text-[11px] font-black uppercase tracking-widest text-zinc-500">
-          <button onClick={onMagazineClick}  className="hover:text-amber-500 transition focus:outline-none">Magazine</button>
           {/* Tools dropdown */}
           <div className="relative" ref={toolsRef}>
             <button onClick={() => setToolsOpen(p => !p)} className="flex items-center gap-1 hover:text-amber-500 transition focus:outline-none">
@@ -62,6 +61,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
               </div>
             )}
           </div>
+	  <button onClick={onMagazineClick}  className="hover:text-amber-500 transition focus:outline-none">Magazine</button>
           <button onClick={onResourcesClick} className="hover:text-amber-500 transition focus:outline-none">Resources</button>
 
           {/* Under30 dropdown */}
@@ -104,9 +104,6 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-zinc-950 border-t border-zinc-900 px-4 py-4 space-y-1 shadow-2xl">
-          <button onClick={() => { setMobileMenuOpen(false); onMagazineClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
-            <i className="fas fa-book-open w-4 text-zinc-600"></i> Magazine
-          </button>
           {/* Tools mobile accordion */}
           <div className="pt-1 border-t border-zinc-900 mt-1">
             <button
@@ -132,6 +129,11 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
               </div>
             )}
           </div>
+	  
+	  <button onClick={() => { setMobileMenuOpen(false); onMagazineClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
+            <i className="fas fa-book-open w-4 text-zinc-600"></i> Magazine
+          </button>
+	 
           <button onClick={() => { setMobileMenuOpen(false); onResourcesClick(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-400 hover:bg-zinc-900 hover:text-amber-500 transition text-left">
             <i className="fas fa-book w-4 text-zinc-600"></i> Resources
           </button>
