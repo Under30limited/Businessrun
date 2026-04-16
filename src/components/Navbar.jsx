@@ -91,7 +91,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
         {/* Right */}
         <div className="flex items-center gap-3">
           <button onClick={handleSubscribeClick} className="hidden md:block bg-zinc-100 text-black px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 transition">
-            Join Capital Club
+            Grow Your Business
           </button>
           <button onClick={() => setMobileMenuOpen(p => !p)} className="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg hover:bg-zinc-900 transition gap-1.5" aria-label="Toggle menu">
             <span className={`block h-0.5 w-5 bg-zinc-400 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
@@ -174,7 +174,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
 
           <div className="pt-2">
             <button onClick={handleSubscribeClick} className="w-full bg-zinc-100 text-black py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-amber-500 transition">
-              Join Capital Club
+              Grow Your Business
             </button>
           </div>
         </div>
