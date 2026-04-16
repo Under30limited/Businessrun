@@ -46,7 +46,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
           {/* Tools dropdown */}
           <div className="relative" ref={toolsRef}>
             <button onClick={() => setToolsOpen(p => !p)} className="flex items-center gap-1 hover:text-amber-500 transition focus:outline-none">
-              Tools
+              Our Technology
               <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`}></i>
             </button>
             {toolsOpen && (
@@ -115,7 +115,7 @@ function Navbar({ onUnder30WomenClick, onTop30Click, onLogoClick, onSubscribeCli
             >
               <div className="flex items-center gap-3">
                 <i className="fas fa-calculator w-4 text-zinc-600"></i>
-                <span>Tools</span>
+                <span>Our Technology</span>
               </div>
               <ChevronDown size={12} className={`transition-transform duration-200 ${mobileToolsOpen ? 'rotate-180' : ''}`} />
             </button>
