@@ -3,7 +3,7 @@ import { X, ArrowRight, ArrowLeft, CheckCircle, Loader2, AlertCircle, Zap, Users
 import { useNavigate } from 'react-router-dom';
 
 // ── Paste your GrowYourBusiness.gs deployed URL here ──────────
-const GYB_ENDPOINT = 'PASTE_YOUR_GYB_APPS_SCRIPT_URL_HERE';
+const GYB_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzVd7zYCERc_tdNNg_kc4lnXcojCYoI84XzEFJ1r24NqI5IuZXMC3qslU0G97GneKcZ/exec';
 
 // ── Generate a simple session ID ─────────────────────────────
 function genSessionId() {
