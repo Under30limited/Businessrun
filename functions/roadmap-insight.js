@@ -50,7 +50,7 @@ export async function onRequestPost(context) {
     `Return ONLY valid JSON. No markdown, no explanation, no extra fields.`;
 
   const geminiUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`;
 
   try {
     const geminiRes = await fetch(geminiUrl, {
