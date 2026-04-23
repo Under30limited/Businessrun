@@ -52,7 +52,7 @@ export default function AnnouncementPopup({ onGoToApp }) {
               Maybe Later
             </button>
           </div>
-          <p className="text-xs text-zinc-600 text-center mt-4">Applications close 22nd April 2026</p>
+          <p className="text-xs text-zinc-600 text-center mt-4">Applications close 30th April 2026</p>
         </div>
       </div>
     </div>
