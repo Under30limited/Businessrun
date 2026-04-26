@@ -259,6 +259,45 @@ const MAGAZINES = [
       ],
     },
   },
+  {
+    id: 40, // Assigning next sequential ID
+    priority: true,
+    sortOrder: 5,
+    category: 'lifestyle',
+    title: 'Fashion, Reprogrammed',
+    issue: 'Issue #64',
+    label: 'Issue #64: Techwear Movement',
+    desc: 'How Cyberjunior is building Africa’s first true techwear movement through engineered design.',
+    coverBg: 'bg-zinc-950',
+    img: `${process.env.PUBLIC_URL}/image0.png`,
+    imgClass: 'w-full h-full object-cover object-center',
+    CoverContent: () => (
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+    ),
+    article: {
+      title: 'Fashion, Reprogrammed: How Cyberjunior is Building Africa’s First True Techwear Movement',
+      subtitle: 'In Lagos, a new generation of brands is pushing beyond expression into function, identity, and engineered design.',
+      author: 'BusinessRun Editorial',
+      role: 'Fashion & Technology Desk',
+      readTime: '7 min read',
+      pullQuote: 'Cyberjunior is not just participating in African fashion — it is trying to redefine what African fashion looks like in a global, tech-driven era.',
+      body: [
+        'In Lagos, fashion has always been expressive. But a new generation of brands is pushing beyond expression into function, identity, and engineered design. Cyberjunior is one of the clearest signals of that shift — a company positioning itself not just as a streetwear label, but as Africa’s answer to the global techwear movement.',
+
+        '## Beyond Streetwear: The Rise of Functional Fashion\n\nCyberjunior operates in a space that sits between fashion, technology, and utility. Its design philosophy is rooted in what the global market calls techwear — garments engineered for performance, adaptability, and urban living. According to its platform, the brand focuses on tech-infused fabrics with durability and thermal regulation, tactical functionality through modular pockets and adjustable elements, and a distinct African-inspired design language. This is not accidental. It is a deliberate attempt to move African fashion from aesthetic storytelling toward engineered product design.',
+
+        '## The Lagos Advantage: Culture Meets Velocity\n\nCyberjunior is built out of Lagos — and that matters. Lagos is fast, chaotic, creative, and youth-driven. In that environment, fashion is not passive; it is survival, identity, and status combined. Cyberjunior taps into this by designing clothing for movement, performance, and visibility. Its pieces — from tactical sets to cargo wear and reflective hoodies — are built for a generation that lives both online (digital identity) and on the streets (physical presence).',
+
+        '## From Clothing to Mindset\n\nWhat separates Cyberjunior from traditional fashion brands is its positioning. It does not sell clothes; it sells a mindset. At fashion showcases and runway appearances, the brand frames itself as “Bold. Forward. Unapologetically Cyber.” This language is intentional. It aligns the brand with digital culture, cyberpunk aesthetics, and a future-facing identity. In other words, Cyberjunior is trying to redefine what African fashion looks like in a global, tech-driven era.',
+
+        '## The Product Strategy: Utility as a Premium\n\nGlobally, techwear has been dominated by brands in Japan, Europe, and the U.S. Cyberjunior is attempting to localize that category for Africa. Its collections are priced to sit in an accessible premium tier, making functional fashion available to a wider demographic. This is important because in emerging markets, the brands that win are not always the most expensive — they are the ones that balance identity, function, and accessibility.',
+
+        '## Scaling Beyond Nigeria\n\nCyberjunior is already signaling international ambition. Its presence and positioning extend across Nigeria, the UK, and the UAE. This multi-market identity suggests a larger strategy: build in Lagos, scale globally. This mirrors the playbook used by Afrobeats, African fintech, and other creative exports. The business of identity is at the core of this shift; young consumers are no longer just buying products; they are buying identity systems.',
+
+        '## BusinessRun Insight: The Future of Export\n\nCyberjunior represents a new category of African business: brands that don’t just adapt global trends — they reinterpret them through an African lens and export them back to the world. The opportunity is massive. Africa has the youngest population globally, street culture is accelerating, and digital identity is becoming currency. The question is not whether African fashion will globalize—it already is. The question is: which brands will own the narrative? Cyberjunior is positioning itself to be one of them.',
+      ],
+    },
+  },
 
   // ── Entertainment: Big 3 Cold War ─────────────────────────
   {
