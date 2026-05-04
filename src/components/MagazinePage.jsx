@@ -98,7 +98,7 @@ const MAGAZINES = [
     label: 'Issue #59: Boxing Business',
     desc: 'The high-stakes economics of a global boxing comeback.',
     coverBg: 'bg-slate-900',
-    img: `${process.env.PUBLIC_URL}/aj_cover.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-anthony.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -167,7 +167,7 @@ const MAGAZINES = [
     label: 'Issue #56: Nollywood Reimagined',
     desc: 'How streaming is transforming African cinema.',
     coverBg: 'bg-red-950',
-    img: `${process.env.PUBLIC_URL}/cover_14_nollywood.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-funke.png`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
@@ -200,7 +200,7 @@ const MAGAZINES = [
     label: 'Issue #58: Wealth & Wellness',
     desc: 'Why Africa\'s new rich are investing in themselves.',
     coverBg: 'bg-teal-900',
-    img: `${process.env.PUBLIC_URL}/cover_16_wealth_wellness.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-wealth.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
@@ -348,7 +348,7 @@ const MAGAZINES = [
     label: 'Issue #63: Creator Economy',
     desc: 'How Peller is turning viral fame into a real-world business across 19 Nigerian states.',
     coverBg: 'bg-violet-950',
-    img: `${process.env.PUBLIC_URL}/peller_cover.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-peller.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
