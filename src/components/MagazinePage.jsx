@@ -136,7 +136,7 @@ const MAGAZINES = [
     label: 'Issue #55: Sound of Africa',
     desc: 'The genre that conquered the world\'s playlists.',
     coverBg: 'bg-pink-900',
-    img: `${process.env.PUBLIC_URL}/cover_13_afrobeats.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-tyla.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -234,7 +234,7 @@ const MAGAZINES = [
     label: 'Issue #60: Creative Wealth',
     desc: 'The economics behind Asake buying his parents two luxury SUVs.',
     coverBg: 'bg-zinc-900',
-    img: `${process.env.PUBLIC_URL}/asake_cover.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-asake.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -309,7 +309,7 @@ const MAGAZINES = [
     label: 'Issue #61: The Rivalry',
     desc: 'Wizkid. Burna. Davido. The collab the world wants — and why it may never happen.',
     coverBg: 'bg-slate-900',
-    img: `${process.env.PUBLIC_URL}/cover_19_big3.jpg`,
+    img: `${process.env.PUBLIC_URL}/2026-wizkid.jpg`,
     imgClass: 'w-full h-full object-cover object-top',
     CoverContent: () => (
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
