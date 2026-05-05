@@ -164,12 +164,6 @@ export default function HomePage({
               Explore Tools
             </button>
             {/* Read Magazine → magazine page */}
-            <button
-              onClick={onMagazineClick}
-              className="bg-zinc-900 border border-zinc-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 transition-all active:scale-95"
-            >
-              Read Magazine
-            </button>
           </div>
         </div>
       </section>
