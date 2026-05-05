@@ -377,6 +377,7 @@ const MAGAZINES = [
       ],
     },
   },
+  //--------------------------------
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -640,24 +641,40 @@ function MagazineReader({ mag, onClose }) {
 // ─────────────────────────────────────────────────────────────
 // MagazinePage
 // ─────────────────────────────────────────────────────────────
+// Converts a desc string to a URL-safe slug
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9 -]/g, '').trim().replace(/\s+/g, '-');
+}
+
 export default function MagazinePage({ onBack }) {
-  const navigate        = useNavigate();
-  const { articleId }   = useParams();
+  const navigate  = useNavigate();
+  const { articleSlug } = useParams();
 
   const [activeCategory, setActiveCategory] = useState('all');
 
-  // Derive which article is open directly from the URL param — no local state needed
-  const openMag = articleId
-    ? MAGAZINES.find(m => m.id === parseInt(articleId, 10)) ?? null
+  // Derive open article from URL slug — no local state needed
+  const openMag = articleSlug
+    ? MAGAZINES.find(m => slugify(m.desc) === articleSlug) ?? null
     : null;
 
-  // Opening an article — push URL to /magazine/article/:id
+  // Update browser tab title when article opens or closes
+  useEffect(() => {
+    if (openMag) {
+      document.title = `${openMag.article?.title ?? openMag.title} | BusinessRun`;
+    } else {
+      document.title = 'Magazine | BusinessRun';
+    }
+    return () => { document.title = 'BusinessRun | The Pulse of African Enterprise'; };
+  }, [openMag]);
+
+  // Open an article — push slug-based URL
   function handleOpenMag(mag) {
-    navigate(`/magazine/article/${mag.id}`);
+    const slug = slugify(mag.desc);
+    navigate(`/magazine/article/${slug}`);
     window.scrollTo(0, 0);
   }
 
-  // Closing an article — go back to /magazine list
+  // Close article — back to magazine list
   function handleCloseMag() {
     navigate('/magazine');
     window.scrollTo(0, 0);
