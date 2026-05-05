@@ -15,6 +15,44 @@ const CATEGORIES = [
 
 const MAGAZINES = [
   {
+    id: 42, 
+    priority: true,
+    sortOrder: 6,
+    category: 'tech',
+    title: 'The Match Day Legacy',
+    issue: 'Issue #65',
+    label: 'Issue #65: Sports Entertainment',
+    desc: 'How Leo DaSilva scaled a football watch party into a premium community and lifestyle ecosystem.',
+    coverBg: 'bg-zinc-900',
+    img: `${process.env.PUBLIC_URL}/image0.jpeg`,
+    imgClass: 'w-full h-full object-cover object-center',
+    CoverContent: () => (
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+    ),
+    article: {
+      title: 'Leo DaSilva on Scaling a 7-Edition Match Day Legacy and the Future of Nigerian Football Fan Culture',
+      subtitle: 'What started as a 90-minute game viewing has evolved into a masterclass in community building and brand scalability in the heart of Lagos.',
+      author: 'Maxwell Olusegun Njarika',
+      role: 'Lifestyle & Sports Correspondent',
+      readTime: '6 min read',
+      pullQuote: 'My community has strict rules and we don’t condone people who break them. This quality translates to the cult following my watch party has.',
+      body: [
+        'In the heart of Lagos, football is more than a sport—it is a collective heartbeat. But for Leo DaSilva, it’s also a masterclass in community building and brand scalability. As he prepares for the 7th Edition of his famed Watch Party at The Condo Event Center, it is clear he has turned matchday into a premium business ecosystem.',
+
+        '## The Lifestyle Pivot\n\nOne of the most striking elements of the 7th edition is the integration of an After Party. This wasn\'t just a random addition; it was a strategic move sparked by a partnership with Budweiser. Leo explains that transitioning from a sports viewing event to a full-scale entertainment experience keeps the audience engaged long after the final whistle, turning a game into a recurring staple of Lagos sports culture.',
+
+        '## The "Standard" as a Currency\n\nIn a city filled with viewing centers, Leo has carved out a premium niche. The secret lies in uncompromising standards. By enforcing a "culture of respect" and strict community rules, he has created a safe space where people of all classes feel comfortable. For Leo, the business isn’t just about the screen; it’s about the environment and the quality that translates into a cult following.',
+
+        '## Built on Experience\n\nWhile many see the Watch Party as a recent triumph, Leo’s roots in event management go deep. While at university in the UK, he owned one of the largest nightlife and booking companies, hosting events since he was 17. The Watch Party wasn\'t a gamble; it was a calculated execution based on years of knowing how to grow projects from the ground up.',
+
+        '## Future Playbook: Club Ownership?\n\nWith a community this loyal, the next logical step in the "Business of Football" is ownership. While Leo has been thinking about it, he views the prospect with a Product Manager’s pragmatism. He notes that owning a club requires immense structure and stability, viewing it perhaps as a future retirement plan rather than an immediate move.',
+
+        '## BusinessRun Insight: Community as an Asset\n\nLeo DaSilva has demonstrated that in the modern economy, a loyal community is the most valuable currency. Whether Arsenal brings home a trophy or not, the reliability of the "Standard" ensures the brand stands. He has successfully won the game of sports entertainment in Lagos by treating fandom as a high-value, scalable product.',
+      ],
+    },
+  },
+
+  {
     id: 2,
     sortOrder: 10,
     category: 'entertainment',
