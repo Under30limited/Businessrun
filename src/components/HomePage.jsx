@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight, Bot, User, Send, Sparkles, Loader2, Calculator,
+  ArrowRight, Bot, User, Send, Sparkles, Loader2,
   FileText, Briefcase, Layers, Clock, ArrowUpRight,
-  ChevronRight, Trophy, RefreshCcw, Zap
+  ChevronRight, Trophy, RefreshCcw
 } from 'lucide-react';
 
 export default function HomePage({
   onMagazineClick, onMagazineStoryClick, onToolsClick, onUnder30Click,
-  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick, onAccountingClick, onMogulAuditClick,
+  onTop30Click, onReceiptClick, onSubscribeClick, onResourceClick,
 }) {
   const words = ['Build.', 'Scale.', 'Create Wealth.'];
   const [wordIndex, setWordIndex] = useState(0);
@@ -18,10 +18,12 @@ export default function HomePage({
   }, []);
 
   // Terminal Feed stories — each id maps to a specific magazine issue
-  // id 19 = The Big 3 Cold War | id 20 = Nigeria's Unicorn Factory
+  // id 19 = The Big 3 Cold War | id 21 = The Livestream Economy (Peller)
+  // id 20 = Nigeria's Unicorn Factory | id 18 = Asake's ₦441M Gift
   const stories = [
     {
       id: 19,
+      desc: 'Wizkid. Burna. Davido. The collab the world wants and why it may never happen.',
       category: 'Exclusive',
       headline: 'The Big 3 Cold War: The $50M Collab the World Can\'t Have',
       excerpt: 'Wizkid, Burna Boy and Davido are the most powerful trio in African music history. Their refusal to collaborate is costing Afrobeats — and each other — more than anyone will admit.',
@@ -29,12 +31,29 @@ export default function HomePage({
       readTime: '10 min',
     },
     {
+      id: 21,
+      category: 'Creator Economy',
+      headline: 'How Peller Turned a Livestream Into a 19-State Business Tour',
+      excerpt: 'A 21-year-old with a smartphone, a Kick deal and Moremonee Bank backing is proving that Nigerian creators can build real businesses from the ground up — live, in real time.',
+      author: 'Kelechi Eze',
+      readTime: '9 min',
+    },
+    {
       id: 20,
+      desc: 'How Nigeria became Africas leading producer of billion-dollar startups.',
       category: 'Startups',
       headline: 'Nigeria\'s Unicorn Factory: Inside Africa\'s Biggest Tech Bet',
       excerpt: 'Moniepoint, Chowdeck, Flutterwave — with 205 deals and $343M raised in a single year, Lagos is minting billion-dollar companies faster than anywhere else on the continent.',
       author: 'Taiwo Bankole',
       readTime: '8 min',
+    },
+    {
+      id: 18,
+      category: 'Money & Culture',
+      headline: 'Asake Spent ₦441M in One Week on His Parents. Here\'s the Business Case.',
+      excerpt: 'A Toyota Land Cruiser Prado for Dad. A Mercedes-Benz G-Wagon Brabus for Mum. The numbers behind the viral moment — and what it tells us about the new Afrobeats economy.',
+      author: 'TBR Editorial',
+      readTime: '7 min',
     },
   ];
 
@@ -70,8 +89,6 @@ export default function HomePage({
   function scrollToTop()    { if (chatBoxRef.current) chatBoxRef.current.scrollTop = 0; }
   function scrollToBottom() { if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight; }
 
-  const ADVISOR_DOWN_MSG = '__ADVISOR_DOWN__';
-
   const askAI = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -85,54 +102,39 @@ export default function HomePage({
     setIsLoading(true);
 
     try {
+      // Build history — skip the opening greeting, skip the latest user msg
+      // (we send it separately as 'message')
       const history = newMessages
-        .slice(1)     // skip opening greeting
+        .slice(1)   // skip greeting
         .slice(0, -1) // skip the message we just added
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await fetch('/advisor', {
+      // POST to Netlify Function — same domain, no CORS issues
+      const response = await fetch('/api/advisor', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history }),
+        body: JSON.stringify({
+          message: userMessage,
+          history,
+        }),
       });
 
-      // The function always returns JSON — but guard against edge cases
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // Response wasn't JSON at all (e.g. Cloudflare 5xx HTML page)
-        setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
-        return;
-      }
+      const data = await response.json();
 
-      // advisorDown flag or missing text → friendly down message
-      if (data.advisorDown || !data.text || !data.text.trim()) {
-        setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
-        return;
-      }
+      if (data.error) throw new Error(data.error);
+      if (!data.text) throw new Error('Empty response from advisor function');
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
 
-    } catch {
-      // Network failure (offline, DNS, etc.)
-      setMessages(prev => [...prev, { role: 'assistant', content: ADVISOR_DOWN_MSG }]);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '❌ ' + err.message,
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
-
-
-  // Renders plain text with **bold** markdown → <strong> spans
-  function renderMessageContent(text) {
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-black text-white">{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
-  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
@@ -162,33 +164,90 @@ export default function HomePage({
               Explore Tools
             </button>
             {/* Read Magazine → magazine page */}
+            <button
+              onClick={onMagazineClick}
+              className="bg-zinc-900 border border-zinc-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-zinc-800 transition-all active:scale-95"
+            >
+              Read Magazine
+            </button>
           </div>
+        </div>
+      </section>
+
+      {/* ── Magazine Headlines ───────────────────────────────── */}
+      <section id="magazine" className="max-w-7xl mx-auto px-6 py-24 border-t border-zinc-900">
+        <div className="flex items-center justify-between mb-16">
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Terminal Feed</h2>
+            <div className="h-[2px] w-12 bg-amber-500/50" />
+          </div>
+          <button
+            onClick={onMagazineClick}
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-amber-500 flex items-center gap-2 group transition-all"
+          >
+            Full Archive <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {stories.map(story => (
+            <button
+              key={story.id}
+              onClick={() => onMagazineStoryClick(story.id, story.desc)}
+              className="group cursor-pointer text-left relative p-8 bg-zinc-950 border border-zinc-900 rounded-[2rem] hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-500 w-full"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                  {story.category}
+                </span>
+                <span className="text-[9px] text-zinc-600 font-black uppercase tracking-widest flex items-center gap-1">
+                  <Clock size={10} /> {story.readTime}
+                </span>
+              </div>
+              <h3 className="text-2xl font-black leading-tight mb-4 group-hover:text-amber-500 transition-colors duration-300">
+                {story.headline}
+              </h3>
+              <p className="text-zinc-500 text-sm leading-relaxed mb-8 max-w-lg">
+                {story.excerpt}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-zinc-800 flex items-center justify-center text-[7px] font-black text-zinc-500">TBR</div>
+                  <span className="text-[10px] text-zinc-600 font-bold tracking-tight uppercase">{story.author}</span>
+                </div>
+                <div className="bg-zinc-800 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all group-hover:bg-amber-500 group-hover:text-black">
+                  <ArrowRight size={16} />
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
       {/* ── Feature Grid ─────────────────────────────────────── */}
       <section className="px-6 py-12 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 
-	  {/* Accounting Tools → AccountingTools page */}
-          <button
-            onClick={onAccountingClick}
-            className="group text-left bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between"
+          {/* Register Your Business → WhatsApp */}
+          <a
+            href="https://wa.me/2348159346026"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between block"
           >
             <div>
               <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-6 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-                <Calculator size={28} />
+                <Layers size={28} />
               </div>
-              <h3 className="text-2xl font-black mb-3 italic uppercase tracking-tight">Accounting Tools</h3>
+              <h3 className="text-2xl font-black mb-3 italic uppercase tracking-tight">Register your business</h3>
               <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                AI-powered ledgers, income statements, balance sheets and cash flow reports built for Nigerian SMEs.
+                Tell us your business name, and our agents will handle the rest. We make getting your official certificate simple, fast, and affordable for every business owner.
               </p>
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-amber-500 group-hover:gap-4 transition-all">
-              Open Tools <ArrowRight size={14} />
+              Start Registration <ArrowRight size={14} />
             </span>
-          </button>
-
+          </a>
 
           {/* Receipts → ReceiptGenerator page */}
           <button
@@ -225,34 +284,8 @@ export default function HomePage({
               Access Pack <ArrowRight size={14} />
             </span>
           </button>
-
-	  {/* Register Your Business → WhatsApp */}
-          <a
-            href="https://wa.me/2347044450636"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:border-amber-500/40 transition-all flex flex-col justify-between block"
-          >
-            <div>
-              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-6 border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-black transition-all">
-                <Layers size={28} />
-              </div>
-              <h3 className="text-2xl font-black mb-3 italic uppercase tracking-tight">Register your business</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                Tell us your business name, and our agents will handle the rest. We make getting your official certificate simple, fast, and affordable for every business owner.
-              </p>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-amber-500 group-hover:gap-4 transition-all">
-              Start Registration <ArrowRight size={14} />
-            </span>
-          </a>
-
         </div>
 
-      </section>
-
-      {/* ── AI Advisor ───────────────────────────────────────────────────────── */}
-      <section className="px-6 pb-12 max-w-7xl mx-auto">
         {/* ── AI Advisor ─────────────────────────────────────── */}
         <div id="ai-advisor" className="bg-zinc-900/60 border border-zinc-800 rounded-[2.5rem] overflow-hidden grid grid-cols-1 lg:grid-cols-2 shadow-2xl">
           <div className="p-10 flex flex-col justify-center">
@@ -313,21 +346,9 @@ export default function HomePage({
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.role === 'user' ? 'bg-amber-500 text-black font-black' : 'bg-zinc-800 text-amber-500 border border-zinc-700'}`}>
                       {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                     </div>
-
-                    {/* Advisor-down: friendly UI card */}
-                    {m.content === ADVISOR_DOWN_MSG ? (
-                      <div className="p-4 rounded-2xl text-[11px] leading-relaxed bg-zinc-900 border border-zinc-700 text-zinc-400 flex items-start gap-3">
-                        <span className="text-lg leading-none">🛠️</span>
-                        <div>
-                          <p className="font-black text-zinc-300 uppercase tracking-widest text-[9px] mb-1">Advisor Unavailable</p>
-                          <p>The advisory is currently down. Please check back later — we're working on it.</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold shadow-lg' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
-                        {renderMessageContent(m.content)}
-                      </div>
-                    )}
+                    <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold shadow-lg' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
+                      {m.content}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -365,111 +386,6 @@ export default function HomePage({
                 <Send size={16} />
               </button>
             </form>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Magazine Headlines ───────────────────────────────── */}
-      <section id="magazine" className="max-w-7xl mx-auto px-6 py-24 border-t border-zinc-900">
-        <div className="flex items-center justify-between mb-16">
-          <div className="flex items-center gap-4">
-            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Terminal Feed</h2>
-            <div className="h-[2px] w-12 bg-amber-500/50" />
-          </div>
-          <button
-            onClick={onMagazineClick}
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-amber-500 flex items-center gap-2 group transition-all"
-          >
-            Full Archive <ArrowUpRight size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {stories.map(story => (
-            <button
-              key={story.id}
-              onClick={() => onMagazineStoryClick(story.id)}
-              className="group cursor-pointer text-left relative p-8 bg-zinc-950 border border-zinc-900 rounded-[2rem] hover:bg-zinc-900/40 hover:border-zinc-700 transition-all duration-500 w-full"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                  {story.category}
-                </span>
-                <span className="text-[9px] text-zinc-600 font-black uppercase tracking-widest flex items-center gap-1">
-                  <Clock size={10} /> {story.readTime}
-                </span>
-              </div>
-              <h3 className="text-2xl font-black leading-tight mb-4 group-hover:text-amber-500 transition-colors duration-300">
-                {story.headline}
-              </h3>
-              <p className="text-zinc-500 text-sm leading-relaxed mb-8 max-w-lg">
-                {story.excerpt}
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-zinc-800 flex items-center justify-center text-[7px] font-black text-zinc-500">TBR</div>
-                  <span className="text-[10px] text-zinc-600 font-bold tracking-tight uppercase">{story.author}</span>
-                </div>
-                <div className="bg-zinc-800 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all group-hover:bg-amber-500 group-hover:text-black">
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Mogul Audit CTA ──────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="relative bg-black border border-zinc-800 rounded-[3rem] overflow-hidden">
-
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10 p-10 md:p-14">
-            <div className="max-w-xl">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
-                  Free Audit
-                </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">
-                  16 Questions · 4 Pillars
-                </span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tighter italic uppercase text-white mb-4 leading-none">
-                Are You Really<br />Running a Business<br />
-                <span className="text-amber-500">— or Just Busy?</span>
-              </h2>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-2">
-                Most Nigerian founders are working hard but scoring low where it counts — registration, systems, margins, and growth moves. Take the Mogul Audit and find out exactly where you stand.
-              </p>
-              <p className="text-zinc-600 text-xs uppercase tracking-widest font-black">
-                Get your rank: Nomad → Operator → Scaler → Mogul
-              </p>
-            </div>
-
-            <div className="shrink-0 flex flex-col items-center gap-4">
-              {/* Score preview bubbles */}
-              <div className="grid grid-cols-2 gap-3 mb-2">
-                {['Foundation', 'Operations', 'Execution', 'Growth'].map((p, i) => (
-                  <div key={p} className="w-24 h-24 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col items-center justify-center">
-                    <span className="text-xl mb-1">
-                      {['🏛️','⚙️','⚔️','📈'][i]}
-                    </span>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 text-center leading-tight">
-                      {p}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={onMogulAuditClick}
-                className="group relative w-full flex items-center justify-center gap-2 px-10 py-4 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-amber-400 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
-              >
-                <Zap size={15} />
-                Start the Audit
-              </button>
-              <p className="text-[10px] text-zinc-700 uppercase tracking-widest">
-                Free · Takes 3 minutes · Get a shareable card
-              </p>
-            </div>
           </div>
         </div>
       </section>
