@@ -68,7 +68,15 @@ function AppInner() {
   function goMagazine()     { navigate('/magazine');      window.scrollTo(0, 0); }
   function goHowItWorks()   { navigate('/how-it-works');  window.scrollTo(0, 0); }
 
-  function goMagazineStory(id) { navigate(`/magazine/article/${id}`); window.scrollTo(0, 0); }
+  // Convert article desc to URL slug
+  function slugify(desc) {
+    return desc.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+  }
+  function goMagazineStory(id, desc) {
+    const slug = desc ? slugify(desc) : String(id);
+    navigate(`/magazine/article/${slug}`);
+    window.scrollTo(0, 0);
+  }
 
   // Our Technology actions
   function goProfitCalc()  { navigate('/tools');             window.scrollTo(0, 0); }
@@ -153,7 +161,7 @@ function AppInner() {
           <Route path="/your-roadmap"              element={<RoadmapPage />} />
           <Route path="/how-it-works"              element={<HowItWorksPage  onBack={goHome} />} />
           <Route path="/magazine"                  element={<MagazinePage    onBack={goHome} />} />
-          <Route path="/magazine/article/:articleId" element={<MagazinePage  onBack={goHome} />} />
+          <Route path="/magazine/article/:articleSlug" element={<MagazinePage onBack={goHome} />} />
           <Route path="*"                          element={<RedirectHome />} />
         </Routes>
       </div>
