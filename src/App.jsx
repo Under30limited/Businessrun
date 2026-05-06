@@ -12,7 +12,7 @@ import ReceiptGenerator  from './components/ReceiptGenerator';
 import MagazinePage      from './components/MagazinePage';
 import LivePricePage     from './components/LivePricePage';
 import SubscribeModal    from './components/SubscribeModal';
-import AnnouncementPopup from './components/AnnouncementPopup';
+//import AnnouncementPopup from './components/AnnouncementPopup';
 import GrowYourBusinessModal from './components/GrowYourBusinessModal';
 import RoadmapPage       from './components/RoadmapPage';
 import HowItWorksPage    from './components/HowItWorksPage';
@@ -110,9 +110,6 @@ function AppInner() {
         onClose={() => setGybOpen(false)}
       />
 
-      {location.pathname === '/' && (
-        <AnnouncementPopup onGoToApp={goUnder30} />
-      )}
 
       <Navbar
         onLogoClick={goHome}
