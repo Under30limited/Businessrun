@@ -30,13 +30,13 @@ export default function HomePage({
       readTime: '10 min',
     },
     {
-      id: 20,
-      desc: 'How Nigeria became Africas leading producer of billion-dollar startups.',
-      category: 'Startups',
-      headline: 'Nigeria\'s Unicorn Factory: Inside Africa\'s Biggest Tech Bet',
-      excerpt: 'Moniepoint, Chowdeck, Flutterwave — with 205 deals and $343M raised in a single year, Lagos is minting billion-dollar companies faster than anywhere else on the continent.',
-      author: 'Taiwo Bankole',
-      readTime: '8 min',
+      id: 42,
+      desc: 'How Leo DaSilva scaled a football watch party into a premium community and lifestyle ecosystem.',
+      category: 'Sports Business',
+      headline: 'The Match Day Legacy: Engineering a Premium Fan Experience',
+      excerpt: 'From high-octane viewings to strategic brand partnerships with Budweiser, Leo DaSilva is proving that in Lagos, community standards and lifestyle pivots are the real keys to scaling sports entertainment.',
+      author: 'Maxwell Olusegun Njarika',
+      readTime: '6 min',
     },
   ];
 
