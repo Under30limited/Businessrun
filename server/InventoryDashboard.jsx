@@ -119,7 +119,7 @@ export default function InventoryDashboard({ items, setItems }) {
       try {
         data = await res.json();
       } catch {
-        setFormError('Server returned an unexpected response. Please try again.');
+        setFormError("We couldn't complete your request right now. Please try again in a moment.");
         return;
       }
 
@@ -131,14 +131,20 @@ export default function InventoryDashboard({ items, setItems }) {
       }
 
       if (!res.ok || !data.success) {
-        setFormError(data.message || 'Could not save item. Please try again.');
+        // All known errors (413, auth, validation) are handled above.
+        // For anything else, show a pleasant fallback — never expose
+        // raw server messages or technical details to the user.
+        setFormError("Something went wrong on our end. Your item wasn't saved — please try again.");
         return;
       }
 
       // Prepend new item so it appears at the top
       setItems(prev => [data.item, ...prev]);
       closeModal();
-    } catch { setFormError('Network error. Please try again.'); }
+    } catch {
+      // fetch() itself threw — likely a network failure (offline, timeout, DNS).
+      setFormError("Please check your connection and try again.");
+    }
     finally  { setIsSaving(false); }
   }
 
