@@ -416,6 +416,81 @@ const MAGAZINES = [
     },
   },
   //--------------------------------
+  {
+    id: 43,
+    priority: true,
+    sortOrder: 7,
+    category: 'tech',
+    title: 'The Evolution of a Media Powerhouse',
+    issue: 'Issue #66',
+    label: 'Issue #66: Media & Production',
+    desc: 'How Elvina Ibru transitioned from global stages to building the infrastructure of Nigerian broadcasting.',
+    coverBg: 'bg-rose-950',
+    img: `${process.env.PUBLIC_URL}/2026-elvina.jpeg`,
+    imgClass: 'w-full h-full object-cover object-top',
+    CoverContent: () => (
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+  ),
+    article: {
+      title: 'Elvina Ibru: The Evolution of a Media Powerhouse from Screen to Boardroom',
+      subtitle: 'From the hallowed halls of the BBC to bringing the Idols franchise to West Africa, Elvina’s journey is a masterclass in adaptation and the mastery of show business.',
+      author: 'Maxwell Njarika',
+      role: 'Technology & Culture Correspondent',
+      readTime: '8 min read',
+      pullQuote: 'At school, I was taught about my ART and perfecting my CRAFT. In short, I was tutored in SHOW, but not BUSINESS.',
+      body: [
+      'In the landscape of Nigerian entertainment, few names carry the multi-generational weight and versatile brilliance of Elvina Baby Ibru. To many, she is the unforgettable face of *The Bling Lagosians* or the commanding voice of *Mellow Magic* on Classic FM. But to define her simply as an "actress" is to miss the structural impact she has had on the Nigerian media industry for over three decades.',
+
+      '## The Foundation: Art vs. Industry\n\nBorn in Lagos in 1972, Elvina’s technical foundation is global. A graduate of the London Academy of Performing Arts, her early years were spent on prestigious UK stages alongside future Hollywood icons. However, she is the first to admit that a world-class education in "Art" is not the same as an education in "Industry." Upon returning to Nigeria, she faced a "rude awakening" where her global training met a local infrastructure that required a different kind of business intelligence.',
+
+      '## The Pivot: From Voice to Vision\n\nTragedy struck during her peak as a vocalist when she lost her voice, potentially ending her performing career. Instead of exiting the stage, Elvina built the theater. In 1999, she founded **2wice As Nice**, a production company designed to keep her in the industry "behind the camera." This move birthed impactful mini-documentaries and films focusing on anti-human trafficking and support for survivors of sexual violence.',
+
+      '## Bringing "Idols" to the West\n\nOne of the most significant milestones in Nigerian media history is Elvina’s role in bringing the IDOLS franchise to the region as *Idols West Africa* in 2007. The project confirmed her belief in peerless Nigerian talent while teaching a vital business lesson: "It does not matter whether the format is European or American. The FORMAT itself is the important part."',
+
+      '## The Addictive Rush of the Stage\n\nWhile she has starred in modern screen hits like *Slum Kings* and *Riona*, her heart remains tethered to the discipline of the stage. Her recent work, including writing for the 2025 Lagos International Theatre Festival, highlights her commitment to the rigors of live performance. "You have to be extremely disciplined... If you don\'t work as ONE in the theatre, then your project simply won\'t work."',
+
+      '## BusinessRun Insight: Authenticity as Legacy\n\nElvina Ibru represents a bridge between the artistic excellence of the past and the commercial infrastructure of the future. By moving from the front of the mic to the owner of the production house, she demonstrated that the "business" in show business is about creating formats and systems that can scale. Her legacy is one of unapologetic authenticity—being the same powerhouse in the boardroom as she is on the stage.'
+      ],
+    },
+  },
+  
+  {
+    id: 44,
+    priority: true,
+    sortOrder: 8,
+    category: 'fashion',
+    title: 'Stitching an Empire',
+    issue: 'Issue #67',
+    label: 'Issue #67: Under30Women in Business',
+    desc: 'How Basirat transformed a maternal gift into a couture institution and a mission for industrialization.',
+    coverBg: 'bg-amber-900',
+    img: `${process.env.PUBLIC_URL}/2026-basirat.jpeg`,
+    imgClass: 'w-full h-full object-cover object-center',
+    CoverContent: () => (
+    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+  ),
+    article: {
+      title: 'STITCHING AN EMPIRE: How Basirat’s Maternal Gift Evolved Into a Couture Legacy',
+      subtitle: 'From a mother’s workshop to the first feature of the 2026 Under30Women in Business cohort, Basirat is redefining African fashion through industrial systems.',
+      author: 'BusinessRun Editorial',
+      role: 'Enterprise & Growth Desk',
+      readTime: '5 min read',
+      pullQuote: 'Seeing clients confidently wear my designs made me understand that I was not just sewing clothes; I was building an identity and creating value.',
+      body: [
+      'In the bustling world of African fashion, many "sew clothes," but few build institutions. Basirat, the visionary behind her eponymous couture brand and the first-ever feature of the 2026 Under30Women in Business cohort, is firmly in the latter category. For Basirat, the journey is not just a career path—it is a mission of industrialization.',
+
+      '## The Inheritance of Grit\n\nEvery legacy has a starting point. For Basirat, it was a gift she didn’t initially realize the value of—fashion design skills learned from her mother. The transition from hobbyist to professional happened at the intersection of trust and commerce. When clients began trusting her with their most significant milestones, Basirat realized she was working with identity, not just fabric.',
+
+      '## Overcoming the "Street" Hurdles\n\nLike many in the Under30 cohort, Basirat’s early days were defined by high talent but low visibility. With limited tools, she had to build her own spotlight. Through a masterclass in consistency and strategic use of social media, she proved that while physical resources might be limited, a determined mind is infinite.',
+
+      '## The Systems of the "Suite"\n\nWhat separates a "tailor" from a "CEO" is the implementation of systems. Basirat has embraced this shift with surgical precision, overhauling her workflow to move from survival-based operations to executive management. By organizing orders, prioritizing client communication, and scheduling production, she is scaling without compromising her signature excellence.',
+
+      '## The Five-Year Mandate: A Global Export House\n\nBasirat’s vision is no longer local; she speaks with the clarity of a global industrialist. She envisions a recognized couture house representing African creativity on the world stage. Her advice to those starting small is simple: "Where you start does not define how far you can go. Every successful brand once started from a small space."',
+
+      '## BusinessRun Insight: The Bravery of Structure\n\nBasirat represents the "Power 10" pioneers—founders who understand that grit is the fuel, but structure is the engine. As the first of her cohort to step forward, she is positioning herself not just as a designer, but as a leader of the next generation of African enterprise, moving fashion from the workshop to the global market.'
+      ],
+    },
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────
