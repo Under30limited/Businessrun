@@ -9,21 +9,26 @@ import { useAuth } from '../context/AuthContext';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
-// ── Firebase client SDK (reset email only) ────────────────────
-// We use the Admin SDK on the backend for everything else.
-// The client SDK is initialised here solely to call
-// sendPasswordResetEmail() — Firebase handles the reset token,
-// the email delivery, and the reset page entirely.
-// getApps() check prevents re-initialisation on hot reload.
-const firebaseClientApp = getApps().length === 0
-  ? initializeApp({
-      apiKey:    process.env.REACT_APP_FIREBASE_API_KEY,
-      authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-      projectId:  process.env.REACT_APP_FIREBASE_PROJECT_ID,
-    })
-  : getApps()[0];
+// ── Firebase client SDK — lazy initialisation ─────────────────
+// NOT initialised at module load time. getFirebaseAuth() is called
+// only when the user clicks "Forgot password?" — this means missing
+// env vars never crash the app on load; they only surface when the
+// reset flow is actually used.
+function getFirebaseAuth() {
+  const apiKey    = process.env.REACT_APP_FIREBASE_API_KEY;
+  const authDomain = process.env.REACT_APP_FIREBASE_AUTH_DOMAIN;
+  const projectId = process.env.REACT_APP_FIREBASE_PROJECT_ID;
 
-const firebaseClientAuth = getAuth(firebaseClientApp);
+  if (!apiKey || !authDomain || !projectId) {
+    throw new Error('FIREBASE_CONFIG_MISSING');
+  }
+
+  const app = getApps().length === 0
+    ? initializeApp({ apiKey, authDomain, projectId })
+    : getApps()[0];
+
+  return getAuth(app);
+}
 
 // ── API endpoint (Express → Firestore) ───────────────────────
 const GYB_ENDPOINT = '/api/gyb';
@@ -193,10 +198,15 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     setError('');
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(firebaseClientAuth, emailVal);
+      // getFirebaseAuth() initialises lazily — only runs here,
+      // never at module load, so missing env vars don't crash the app
+      const auth = getFirebaseAuth();
+      await sendPasswordResetEmail(auth, emailVal);
       setResetSent(true);
     } catch (err) {
-      if (err.code === 'auth/invalid-email') {
+      if (err.message === 'FIREBASE_CONFIG_MISSING') {
+        setError('Password reset is not configured yet. Please contact support.');
+      } else if (err.code === 'auth/invalid-email') {
         setError("That doesn't look like a valid email address.");
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please wait a few minutes and try again.');
