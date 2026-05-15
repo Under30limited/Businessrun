@@ -433,27 +433,55 @@ const MAGAZINES = [
   ),
     article: {
       title: 'Elvina Ibru: The Evolution of a Media Powerhouse from Screen to Boardroom',
-      subtitle: 'From the hallowed halls of the BBC to bringing the Idols franchise to West Africa, Elvina’s journey is a masterclass in adaptation and the mastery of show business.',
+      subtitle: 'From the hallowed halls of the BBC to bringing the Idols franchise to West Africa, Elvina’s journey is a masterclass in adaptation, resilience, and the mastery of the business behind the show.',
       author: 'Maxwell Njarika',
       role: 'Technology & Culture Correspondent',
       readTime: '8 min read',
       pullQuote: 'At school, I was taught about my ART and perfecting my CRAFT. In short, I was tutored in SHOW, but not BUSINESS.',
       body: [
-      'In the landscape of Nigerian entertainment, few names carry the multi-generational weight and versatile brilliance of Elvina Baby Ibru. To many, she is the unforgettable face of *The Bling Lagosians* or the commanding voice of *Mellow Magic* on Classic FM. But to define her simply as an "actress" is to miss the structural impact she has had on the Nigerian media industry for over three decades.',
+      'In the landscape of Nigerian entertainment, few names carry the multi-generational weight and versatile brilliance of Elvina Baby Ibru. To many, she is the unforgettable face of The Bling Lagosians or the commanding voice of Mellow Magic on Classic FM. But to define her simply as an "actress" is to miss the structural impact she has had on the Nigerian media industry for over three decades.',
 
-      '## The Foundation: Art vs. Industry\n\nBorn in Lagos in 1972, Elvina’s technical foundation is global. A graduate of the London Academy of Performing Arts, her early years were spent on prestigious UK stages alongside future Hollywood icons. However, she is the first to admit that a world-class education in "Art" is not the same as an education in "Industry." Upon returning to Nigeria, she faced a "rude awakening" where her global training met a local infrastructure that required a different kind of business intelligence.',
+      'From the hallowed halls of the BBC to the high-stakes world of international franchises like Idols West Africa, Elvina’s journey is a masterclass in adaptation, resilience, and the "begrudging" mastery of the business behind the show.',
 
-      '## The Pivot: From Voice to Vision\n\nTragedy struck during her peak as a vocalist when she lost her voice, potentially ending her performing career. Instead of exiting the stage, Elvina built the theater. In 1999, she founded **2wice As Nice**, a production company designed to keep her in the industry "behind the camera." This move birthed impactful mini-documentaries and films focusing on anti-human trafficking and support for survivors of sexual violence.',
+      '## The Foundation: Art vs. Industry',
 
-      '## Bringing "Idols" to the West\n\nOne of the most significant milestones in Nigerian media history is Elvina’s role in bringing the IDOLS franchise to the region as *Idols West Africa* in 2007. The project confirmed her belief in peerless Nigerian talent while teaching a vital business lesson: "It does not matter whether the format is European or American. The FORMAT itself is the important part."',
+      'Born in Lagos on May 22, 1972, Elvina’s technical foundation is global. A graduate of the London Academy of Performing Arts with a BA in International Relations from Webster University, London, her early years were spent on prestigious UK stages. As a teenager, she was selected out of thousands to join the National Youth Music Theatre, sharing the spotlight with future Hollywood icons like Jude Law and Jonny Lee Miller.',
 
-      '## The Addictive Rush of the Stage\n\nWhile she has starred in modern screen hits like *Slum Kings* and *Riona*, her heart remains tethered to the discipline of the stage. Her recent work, including writing for the 2025 Lagos International Theatre Festival, highlights her commitment to the rigors of live performance. "You have to be extremely disciplined... If you don\'t work as ONE in the theatre, then your project simply won\'t work."',
+      'However, Elvina is the first to admit that a world-class education in "Art" is not the same as an education in "Industry."',
 
-      '## BusinessRun Insight: Authenticity as Legacy\n\nElvina Ibru represents a bridge between the artistic excellence of the past and the commercial infrastructure of the future. By moving from the front of the mic to the owner of the production house, she demonstrated that the "business" in show business is about creating formats and systems that can scale. Her legacy is one of unapologetic authenticity—being the same powerhouse in the boardroom as she is on the stage.'
+      '"It [school] did not prepare me at all," Elvina reflects candidly. "At school, I was taught about my ART and perfecting my CRAFT. In short, I was tutored in SHOW, but not BUSINESS."',
+
+      'Upon returning to Nigeria, she faced a "rude awakening." The global training was there, but the local infrastructure required a different kind of intelligence. "I remember discussing an idea with someone and the person telling me I should give him a proposal. I asked myself, ‘What on earth is a proposal?’"',
+
+      '## The Pivot: From Voice to Vision',
+
+      'Her return to Nigeria saw her anchor the breakfast show on Minaj Broadcast International (MBI)—a channel she describes as being run with the same professional rigor as the BBC—and dominate the live band circuit. With a "big singing voice" and a peak album recording in progress, tragedy struck in Benin.',
+
+      '"I woke up the next morning with no voice! I could not even speak loud enough to communicate, let alone sing or act," she shares.',
+
+      'Faced with the potential end of her performing career, Elvina didn\'t exit the stage; she built the theater. In 1999, she founded 2wice As Nice, a production company designed to keep her in the industry "behind the camera." This move into production birthed impactful mini-documentaries and films like Cajoling and Black Harvest, focusing on her personal advocacy areas of anti-human trafficking and support for survivors of sexual violence.',
+
+      '## Bringing \'Idols\' to the West',
+
+      'One of the most significant yet under-discussed milestones in Nigerian media history is Elvina’s role in bringing the IDOLS franchise to the region as Idols West Africa in 2007. For Elvina, the project was a confirmation of her long-held belief: Nigerian talent is peerless.',
+
+      '"Nigerian talent can stand next to any international artiste and beat them hands down," she asserts. But the business lesson was equally clear: "It does not matter whether the format is European or American. The FORMAT itself is the important part."',
+
+      '## The Addictive Rush of the Stage',
+
+      'While she has starred in modern screen hits like Slum Kings, Riona, and Wives on Strike, her heart remains tethered to the discipline of the stage. Her recent work, including writing the play Nyso And The Egg for the 2025 Lagos International Theatre Festival, highlights her commitment to the rigors of live performance.',
+
+      '"Theatre can give me an almost addictive rush that movies can never give," says the writer-director. "You have to be extremely disciplined... If you don\'t work as ONE in the theatre, then your project simply won\'t work."',
+
+      '## Legacy: No Balance Required',
+
+      'When asked how she balances her fierce public persona with her personal life as a single mother and advocate, Elvina’s answer is as authentic as her performances:',
+
+      '"I don\'t have to balance my public persona with anything... The same Elvina you see out and about is the same one that you don\'t see when she is at home. I am who I am at all times."'
       ],
     },
   },
-  
+
   {
     id: 44,
     priority: true,
