@@ -46,6 +46,7 @@ export default function InventoryDashboard({ items, setItems }) {
   const [deleteId,   setDeleteId]   = useState(null); // id currently being deleted
   const [editId,     setEditId]     = useState(null); // id currently being inline-edited
   const [editQty,    setEditQty]    = useState('');
+  const [editPrice,  setEditPrice]  = useState('');  // inline price edit
   const fileRef = useRef(null);
 
   // ── Open / close modal ────────────────────────────────────────
@@ -143,7 +144,7 @@ export default function InventoryDashboard({ items, setItems }) {
       closeModal();
     } catch {
       // fetch() itself threw — likely a network failure (offline, timeout, DNS).
-      setFormError("Please check your connection and try again.");
+      setFormError("We couldn't reach the server. Please check your connection and try again.");
     }
     finally  { setIsSaving(false); }
   }
@@ -164,21 +165,46 @@ export default function InventoryDashboard({ items, setItems }) {
   }
 
   // ── Inline quantity edit ──────────────────────────────────────
-  function startEdit(item) { setEditId(item.id); setEditQty(String(item.quantity)); }
-  function cancelEdit()    { setEditId(null); setEditQty(''); }
+  function startEdit(item) {
+    setEditId(item.id);
+    setEditQty(String(item.quantity));
+    setEditPrice(String(item.unit_price));
+  }
+
+  function cancelEdit() {
+    setEditId(null);
+    setEditQty('');
+    setEditPrice('');
+  }
 
   async function saveEdit(item) {
-    const qty = parseInt(editQty, 10);
-    if (isNaN(qty) || qty < 0) { cancelEdit(); return; }
+    const qty   = parseInt(editQty, 10);
+    const price = parseFloat(editPrice);
+
+    // Silently cancel if either value is invalid
+    if (isNaN(qty)   || qty   < 0) { cancelEdit(); return; }
+    if (isNaN(price) || price < 0) { cancelEdit(); return; }
+
+    // Only send fields that actually changed
+    const updates = {};
+    if (qty   !== item.quantity)   updates.quantity   = qty;
+    if (price !== item.unit_price) updates.unit_price = price;
+
+    // Nothing changed — just close
+    if (Object.keys(updates).length === 0) { cancelEdit(); return; }
+
     try {
       const res = await fetch('/api/inventory/' + item.id, {
         method:      'PATCH',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },
-        body:        JSON.stringify({ quantity: qty }),
+        body:        JSON.stringify(updates),
       });
       if (!res.ok) { cancelEdit(); return; }
-      setItems(prev => prev.map(i => i.id === item.id ? { ...i, quantity: qty } : i));
+      // Update local state with changed fields only
+      setItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, ...updates } : i
+      ));
     } catch { /* silent */ }
     finally { cancelEdit(); }
   }
@@ -299,36 +325,59 @@ export default function InventoryDashboard({ items, setItems }) {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-black text-white">₦{Number(item.unit_price).toLocaleString()}</span>
-
-                  {/* Inline quantity editor */}
-                  {editId === item.id ? (
-                    <div className="flex items-center gap-1">
-                      <input type="number" value={editQty}
-                        onChange={e => setEditQty(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(item); if (e.key === 'Escape') cancelEdit(); }}
-                        className="w-16 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white text-center focus:outline-none focus:border-[#C5A028]"
-                        autoFocus />
-                      <button onClick={() => saveEdit(item)} className="text-green-400 hover:text-green-300 transition">
-                        <Check size={13} />
+                {/* Price + Quantity — both inline editable */}
+                {editId === item.id ? (
+                  // Edit mode — two inputs side by side + save/cancel
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Price (₦)</p>
+                        <input type="number" value={editPrice}
+                          onChange={e => setEditPrice(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(item); if (e.key === 'Escape') cancelEdit(); }}
+                          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C5A028]"
+                          autoFocus />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Stock</p>
+                        <input type="number" value={editQty}
+                          onChange={e => setEditQty(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(item); if (e.key === 'Escape') cancelEdit(); }}
+                          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none focus:border-[#C5A028]" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveEdit(item)}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-lg text-[10px] font-black transition">
+                        <Check size={11} /> Save
                       </button>
-                      <button onClick={cancelEdit} className="text-zinc-600 hover:text-zinc-400 transition">
-                        <X size={13} />
+                      <button onClick={cancelEdit}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 rounded-lg text-[10px] font-black transition">
+                        <X size={11} /> Cancel
                       </button>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
+                  // Display mode — click either value to enter edit mode
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => startEdit(item)}
+                      className="text-lg font-black text-white hover:text-[#C5A028] transition flex items-center gap-1.5 group"
+                      title="Click to edit price">
+                      ₦{Number(item.unit_price).toLocaleString()}
+                      <Edit3 size={10} className="text-zinc-700 group-hover:text-[#C5A028] transition" />
+                    </button>
                     <button onClick={() => startEdit(item)}
                       className={`flex items-center gap-1.5 text-[10px] font-black px-2 py-1 rounded-lg border transition-all ${
                         item.quantity <= LOW_STOCK
                           ? 'border-red-500/50 text-red-400 hover:bg-red-500/10'
                           : 'border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white'
-                      }`}>
+                      }`}
+                      title="Click to edit stock">
                       <Edit3 size={10} />
                       {item.quantity} in stock
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Delete */}
                 <button onClick={() => handleDelete(item)} disabled={deleteId === item.id}
