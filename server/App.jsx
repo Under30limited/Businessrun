@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 import Navbar            from './components/Navbar';
 import HomePage          from './components/HomePage';
@@ -13,7 +14,7 @@ import ReceiptGenerator  from './components/ReceiptGenerator';
 import MagazinePage      from './components/MagazinePage';
 import LivePricePage     from './components/LivePricePage';
 import SubscribeModal    from './components/SubscribeModal';
-//import AnnouncementPopup from './components/AnnouncementPopup';
+import AnnouncementPopup from './components/AnnouncementPopup';
 import GrowYourBusinessModal from './components/GrowYourBusinessModal';
 import RoadmapPage       from './components/RoadmapPage';
 import HowItWorksPage    from './components/HowItWorksPage';
@@ -100,10 +101,7 @@ function AppInner() {
       }, 400);
     }
   }
-	//pop up we remove
- //{location.pathname === '/' && (
-   //     <AnnouncementPopup onGoToApp={goUnder30} />
-     // )}
+
 
 
   return (
@@ -119,6 +117,14 @@ function AppInner() {
         onClose={() => setGybOpen(false)}
       />
 
+      {/* Announcement popup — fires after 10s on homepage and magazine page.
+          Only shown on public content pages, never on the dashboard. */}
+      {(location.pathname === '/' || location.pathname === '/magazine') && (
+        <AnnouncementPopup
+          onSignUp={() => setGybOpen(true)}
+          onLogin={()  => setGybOpen(true)}
+        />
+      )}
 
       {/* Navbar is suppressed on the dashboard — it has its own navigation */}
       {!isDashboard && (
@@ -187,9 +193,9 @@ function RedirectHome() {
 
 function App() {
   return (
-    // AuthProvider wraps BrowserRouter so useAuth() is available
-    // everywhere in the tree, including inside Router components.
     <AuthProvider>
+      {/* PWA install prompt — shown once when browser fires beforeinstallprompt */}
+      <PWAInstallPrompt />
       <BrowserRouter>
         <AppInner />
       </BrowserRouter>
