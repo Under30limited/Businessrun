@@ -6,29 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
-
-// ── Firebase client SDK — lazy initialisation ─────────────────
-// NOT initialised at module load time. getFirebaseAuth() is called
-// only when the user clicks "Forgot password?" — this means missing
-// env vars never crash the app on load; they only surface when the
-// reset flow is actually used.
-function getFirebaseAuth() {
-  const apiKey    = process.env.REACT_APP_FIREBASE_API_KEY;
-  const authDomain = process.env.REACT_APP_FIREBASE_AUTH_DOMAIN;
-  const projectId = process.env.REACT_APP_FIREBASE_PROJECT_ID;
-
-  if (!apiKey || !authDomain || !projectId) {
-    throw new Error('FIREBASE_CONFIG_MISSING');
-  }
-
-  const app = getApps().length === 0
-    ? initializeApp({ apiKey, authDomain, projectId })
-    : getApps()[0];
-
-  return getAuth(app);
-}
+// Password reset handled via OTP — no Firebase client SDK needed
 
 // ── API endpoint (Express → Firestore) ───────────────────────
 const GYB_ENDPOINT = '/api/gyb';
@@ -54,10 +32,11 @@ const STAGES = [
 ];
 
 const CHANNELS = [
-  { value: 'Social Media',   label: 'Social Media',    sub: 'WhatsApp / Instagram' },
-  { value: 'Physical Store', label: 'Physical Store',  sub: 'Store or Office'      },
-  { value: 'E-commerce',     label: 'E-commerce',      sub: 'Online Website'       },
-  { value: 'B2B/Referrals',  label: 'B2B / Referrals', sub: 'Direct & Network'     },
+  { value: 'Social Media',   label: 'Social Media',   sub: 'WhatsApp / Instagram'   },
+  { value: 'Physical Store', label: 'Physical Store', sub: 'Walk-in Store or Office' },
+  { value: 'E-commerce',     label: 'E-commerce',     sub: 'Online Website / Shop'   },
+  { value: 'B2B',            label: 'B2B Sales',      sub: 'Business to Business'    },
+  { value: 'Referrals',      label: 'Referrals',      sub: 'Word of Mouth / Network' },
 ];
 
 const REVENUE = [
@@ -95,9 +74,15 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
   // ── Login fields ──────────────────────────────────────────
   const [loginEmail,    setLoginEmail]    = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  // ── OTP reset state ─────────────────────────────────────────
   const [resetEmail,    setResetEmail]    = useState('');
-  const [resetSent,     setResetSent]     = useState(false);
+  const [resetStep,     setResetStep]     = useState('request'); // 'request'|'verify'|'newpass'|'done'
   const [resetLoading,  setResetLoading]  = useState(false);
+  const [otpCode,       setOtpCode]       = useState('');
+  const [resetToken,    setResetToken]    = useState('');
+  const [newPassword,   setNewPassword]   = useState('');
+  const [confirmPass,   setConfirmPass]   = useState('');
+  const [showNewPass,   setShowNewPass]   = useState(false);
   const [showLoginPw,   setShowLoginPw]   = useState(false);
 
   // ── Step 1 fields ─────────────────────────────────────────
@@ -107,7 +92,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
 
   // ── Step 2 fields ─────────────────────────────────────────
   const [stage,        setStage]        = useState('');
-  const [salesChannel, setSalesChannel] = useState('');
+  const [salesChannels, setSalesChannels] = useState([]); // multi-select array
   const [revenue,      setRevenue]      = useState('');
   const [headache,     setHeadache]     = useState('');
 
@@ -137,7 +122,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     setMode('auth'); setStep(1); setError('');
     setLoginEmail(''); setLoginPassword('');
     setFullName(''); setBusinessName(''); setEmail('');
-    setStage(''); setSalesChannel(''); setRevenue(''); setHeadache('');
+    setStage(''); setSalesChannels([]); setRevenue(''); setHeadache('');
     setMatchmaking(''); setPassword(''); setConfirm('');
     sessionRef.current = genSessionId();
     onClose();
@@ -188,8 +173,8 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     }
   }
 
-  // ── Password reset ───────────────────────────────────────
-  async function handleReset() {
+  // ── OTP Step 1: Request code ────────────────────────────────
+  async function handleRequestOTP() {
     const emailVal = resetEmail.trim().toLowerCase();
     if (!emailVal || !/[^@]+@[^@]+\.[^@]+/.test(emailVal)) {
       setError('Please enter a valid email address.');
@@ -198,26 +183,89 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     setError('');
     setResetLoading(true);
     try {
-      // getFirebaseAuth() initialises lazily — only runs here,
-      // never at module load, so missing env vars don't crash the app
-      const auth = getFirebaseAuth();
-      await sendPasswordResetEmail(auth, emailVal);
-      setResetSent(true);
-    } catch (err) {
-      if (err.message === 'FIREBASE_CONFIG_MISSING') {
-        setError('Password reset is not configured yet. Please contact support.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError("That doesn't look like a valid email address.");
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please wait a few minutes and try again.');
-      } else {
-        // For user-not-found and all other errors show success —
-        // never reveal whether an email is registered (prevents enumeration)
-        setResetSent(true);
+      const res  = await fetch('/api/auth/otp/request', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: emailVal }),
+      });
+      const data = await res.json();
+
+      // Email not registered — show message with signup link
+      if (res.status === 404 && data.notFound) {
+        setResetStep('not_found');
+        return;
       }
+
+      if (!res.ok) { setError(data.message || "Couldn't send code. Please try again."); return; }
+      setResetStep('verify');
+    } catch {
+      setError("We couldn't reach the server. Please check your connection.");
     } finally {
       setResetLoading(false);
     }
+  }
+
+  // ── OTP Step 2: Verify code ──────────────────────────────────
+  async function handleVerifyOTP() {
+    if (!/^\d{6}$/.test(otpCode.trim())) {
+      setError('Please enter the 6-digit code from your email.');
+      return;
+    }
+    setError('');
+    setResetLoading(true);
+    try {
+      const res  = await fetch('/api/auth/otp/verify', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: resetEmail.trim().toLowerCase(), code: otpCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError(data.message || 'Incorrect code. Please try again.'); return; }
+      setResetToken(data.resetToken);
+      setResetStep('newpass');
+    } catch {
+      setError("We couldn't reach the server. Please check your connection.");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  // ── OTP Step 3: Set new password ─────────────────────────────
+  async function handleSetPassword() {
+    if (newPassword.length < 6)          { setError('Password must be at least 6 characters.');  return; }
+    if (newPassword !== confirmPass)      { setError('Passwords do not match.');                   return; }
+    setError('');
+    setResetLoading(true);
+    try {
+      const res  = await fetch('/api/auth/otp/reset', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          email:       resetEmail.trim().toLowerCase(),
+          resetToken,
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError(data.message || "Couldn't update password. Please try again."); return; }
+      setResetStep('done');
+    } catch {
+      setError("We couldn't reach the server. Please check your connection.");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  // ── Reset the entire OTP flow ────────────────────────────────
+  function resetOTPFlow() {
+    setResetStep('request');
+    setResetEmail('');
+    setOtpCode('');
+    setResetToken('');
+    setNewPassword('');
+    setConfirmPass('');
+    setShowNewPass(false);
+    setError('');
   }
 
   // ─────────────────────────────────────────────────────────
@@ -229,7 +277,41 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
       setError('Please enter a valid work email.'); return;
     }
-    setError(''); setSubmitting(true);
+
+    setError('');
+    setSubmitting(true);
+
+    // ── Email existence check ──────────────────────────────────
+    // Check server-side whether the email is already in Firestore.
+    // We check the `completed` flag to decide what to do:
+    //
+    //   completed === true  → fully registered → block, prompt to log in
+    //   completed === false → started but never finished → allow silently
+    //                         (user is resuming their incomplete signup)
+    //   not found           → allow, fresh signup
+    //
+    // On any network failure we allow progression rather than blocking —
+    // the backend catches duplicates at Step 4 as a safety net.
+    try {
+      const checkRes  = await fetch('/api/auth/check-email', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const checkData = await checkRes.json();
+
+      if (checkData.exists && checkData.completed) {
+        // Fully registered — block and prompt to log in
+        setError('__EMAIL_EXISTS__');
+        setSubmitting(false);
+        return;
+      }
+      // exists but completed === false → incomplete reg → fall through silently
+      // not found at all              → fall through silently
+    } catch {
+      // Network error — allow progression silently
+    }
+
     await saveStep({
       step: 1, sessionId: sessionRef.current,
       fullName, businessName, email,
@@ -241,13 +323,13 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
 
   async function handleStep2Next() {
     if (!stage)        { setError('Please select your business stage.');  return; }
-    if (!salesChannel) { setError('Please select your primary channel.'); return; }
+    if (salesChannels.length === 0) { setError('Please select at least one sales channel.'); return; }
     if (!revenue)      { setError('Please select a revenue bracket.');    return; }
     if (!headache)     { setError('Please select your biggest headache.'); return; }
     setError(''); setSubmitting(true);
     await saveStep({
       step: 2, sessionId: sessionRef.current,
-      stage, salesChannel, revenue, headache,
+      stage, salesChannel: salesChannels.join(', '), revenue, headache,
     });
     setSubmitting(false);
     setStep(3);
@@ -315,7 +397,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     // Navigate only after confirmed server success
     handleClose();
     navigate('/your-roadmap', {
-      state: { businessName, fullName, stage, salesChannel, revenue, headache, matchmaking },
+      state: { businessName, fullName, stage, salesChannel: salesChannels.join(', '), revenue, headache, matchmaking },
     });
   }
 
@@ -469,9 +551,8 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={() => {
+                    resetOTPFlow();
                     setResetEmail(loginEmail); // pre-fill with whatever they typed
-                    setResetSent(false);
-                    setError('');
                     setMode('reset');
                   }}
                   className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-amber-500 transition"
@@ -500,72 +581,177 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* ── Reset password mode ──────────────────────────── */}
+          {/* ── Reset password mode (OTP flow) ──────────────── */}
           {mode === 'reset' && (
             <div className="space-y-5">
-              {!resetSent ? (
+
+              {/* Progress indicator — hidden on not_found and done */}
+              {resetStep !== 'done' && resetStep !== 'not_found' && (
+                <div className="flex items-center gap-2 mb-2">
+                  {['request','verify','newpass'].map((s, i) => (
+                    <div key={s} className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all ${
+                        resetStep === s ? 'bg-amber-500 text-black' :
+                        ['request','verify','newpass'].indexOf(resetStep) > i ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                        'bg-zinc-900 text-zinc-600 border border-zinc-800'
+                      }`}>{i + 1}</div>
+                      {i < 2 && <div className={`h-px w-6 transition-all ${['request','verify','newpass'].indexOf(resetStep) > i ? 'bg-amber-500/40' : 'bg-zinc-800'}`} />}
+                    </div>
+                  ))}
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 ml-1">
+                    {resetStep === 'request' ? 'Enter Email' : resetStep === 'verify' ? 'Enter Code' : 'New Password'}
+                  </span>
+                </div>
+              )}
+
+              {/* Step 1 — Email */}
+              {resetStep === 'request' && (
                 <>
                   <p className="text-zinc-500 text-sm leading-relaxed">
-                    Enter the email address linked to your account. We'll send a password reset link instantly.
+                    Enter the email linked to your account. We'll send a 6-digit code instantly.
                   </p>
-
                   <div>
                     <label className={labelClass}>Email Address *</label>
-                    <input
-                      type="email"
-                      placeholder="you@yourbusiness.com"
+                    <input type="email" placeholder="you@yourbusiness.com"
                       value={resetEmail}
                       onChange={e => { setResetEmail(e.target.value); setError(''); }}
-                      className={inputClass}
-                      autoFocus
-                    />
+                      className={inputClass} autoFocus />
                   </div>
-
-                  <button
-                    onClick={handleReset}
-                    disabled={resetLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95 disabled:opacity-50"
-                  >
+                  <button onClick={handleRequestOTP} disabled={resetLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95 disabled:opacity-50">
                     {resetLoading
-                      ? <><Loader2 size={14} className="animate-spin" /> Sending...</>
-                      : <><KeyRound size={14} /> Send Reset Link</>
-                    }
+                      ? <><Loader2 size={14} className="animate-spin" /> Sending Code...</>
+                      : <><KeyRound size={14} /> Send Reset Code</>}
+                  </button>
+                  <button onClick={() => { setMode('login'); resetOTPFlow(); }}
+                    className="w-full text-center text-[10px] font-black text-zinc-600 hover:text-zinc-400 uppercase tracking-widest transition pt-1">
+                    ← Back to Login
                   </button>
                 </>
-              ) : (
-                /* Success state */
-                <div className="flex flex-col items-center text-center py-4 space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                    <CheckCircle size={24} className="text-green-400" />
+              )}
+
+              {/* Not found — email not registered */}
+              {resetStep === 'not_found' && (
+                <div className="flex flex-col items-center text-center py-4 space-y-5">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                    <AlertCircle size={28} className="text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-white font-black text-base mb-2">Check your inbox</p>
+                    <p className="text-white font-black text-base mb-2">Email Not Registered</p>
                     <p className="text-zinc-500 text-sm leading-relaxed">
-                      If <span className="text-zinc-300">{resetEmail}</span> is registered, a reset link is on its way. Check your spam folder if it doesn't arrive within a minute.
+                      We couldn't find an account linked to{' '}
+                      <span className="text-zinc-200">{resetEmail}</span>.
+                      Check the email or create a new account.
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setMode('login');
-                      setResetSent(false);
-                      setResetEmail('');
-                      setError('');
-                    }}
-                    className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition"
-                  >
-                    <LogIn size={13} /> Back to Login
+                  <div className="flex flex-col gap-3 w-full">
+                    <button
+                      onClick={() => {
+                        setMode('auth');
+                        resetOTPFlow();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition"
+                    >
+                      <UserPlus size={14} /> Create an Account
+                    </button>
+                    <button
+                      onClick={() => { setResetStep('request'); setError(''); }}
+                      className="w-full text-center text-[10px] font-black text-zinc-600 hover:text-zinc-400 uppercase tracking-widest transition py-2"
+                    >
+                      ← Try a Different Email
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 — OTP code */}
+              {resetStep === 'verify' && (
+                <>
+                  <div className="px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Code sent to</p>
+                    <p className="text-sm text-zinc-200">{resetEmail}</p>
+                  </div>
+                  <p className="text-zinc-500 text-xs leading-relaxed">
+                    Enter the 6-digit code from your email. It expires in 15 minutes. Check your spam folder if it doesn't arrive.
+                  </p>
+                  <div>
+                    <label className={labelClass}>6-Digit Code *</label>
+                    <input type="text" inputMode="numeric" maxLength={6}
+                      placeholder="e.g. 483921"
+                      value={otpCode}
+                      onChange={e => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+                      className={inputClass + ' text-center text-2xl font-black tracking-[0.4em]'}
+                      autoFocus />
+                  </div>
+                  <button onClick={handleVerifyOTP} disabled={resetLoading || otpCode.length !== 6}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95 disabled:opacity-50">
+                    {resetLoading
+                      ? <><Loader2 size={14} className="animate-spin" /> Verifying...</>
+                      : <><CheckCircle size={14} /> Verify Code</>}
+                  </button>
+                  <button onClick={() => { setResetStep('request'); setOtpCode(''); setError(''); }}
+                    className="w-full text-center text-[10px] font-black text-zinc-600 hover:text-zinc-400 uppercase tracking-widest transition pt-1">
+                    ← Resend Code
+                  </button>
+                </>
+              )}
+
+              {/* Step 3 — New password */}
+              {resetStep === 'newpass' && (
+                <>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                    Choose a strong new password for your account.
+                  </p>
+                  <div>
+                    <label className={labelClass}>New Password *</label>
+                    <div className="relative">
+                      <input type={showNewPass ? 'text' : 'password'}
+                        placeholder="Min. 6 characters"
+                        value={newPassword}
+                        onChange={e => { setNewPassword(e.target.value); setError(''); }}
+                        className={inputClass + ' pr-12'} autoFocus />
+                      <button type="button" onClick={() => setShowNewPass(p => !p)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition">
+                        {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Confirm Password *</label>
+                    <input type={showNewPass ? 'text' : 'password'}
+                      placeholder="Repeat your password"
+                      value={confirmPass}
+                      onChange={e => { setConfirmPass(e.target.value); setError(''); }}
+                      className={inputClass} />
+                  </div>
+                  <button onClick={handleSetPassword} disabled={resetLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition active:scale-95 disabled:opacity-50">
+                    {resetLoading
+                      ? <><Loader2 size={14} className="animate-spin" /> Updating...</>
+                      : <><KeyRound size={14} /> Set New Password</>}
+                  </button>
+                </>
+              )}
+
+              {/* Step 4 — Done */}
+              {resetStep === 'done' && (
+                <div className="flex flex-col items-center text-center py-6 space-y-5">
+                  <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <CheckCircle size={28} className="text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-black text-lg mb-2">Password Updated!</p>
+                    <p className="text-zinc-500 text-sm leading-relaxed">
+                      Your password has been changed successfully. You can now log in with your new password.
+                    </p>
+                  </div>
+                  <button onClick={() => { setMode('login'); resetOTPFlow(); }}
+                    className="flex items-center gap-2 px-8 py-3.5 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition">
+                    <LogIn size={13} /> Log In Now
                   </button>
                 </div>
               )}
 
-              {!resetSent && (
-                <button
-                  onClick={() => { setMode('login'); setError(''); setResetSent(false); }}
-                  className="w-full text-center text-[10px] font-black text-zinc-600 hover:text-zinc-400 uppercase tracking-widest transition pt-1"
-                >
-                  ← Back to Login
-                </button>
-              )}
             </div>
           )}
 
@@ -624,20 +810,41 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
               </div>
 
               <div>
-                <label className={labelClass}>Primary sales channel? *</label>
+                <label className={labelClass}>
+                  Sales channels? * <span className="text-zinc-700 normal-case font-normal">select all that apply</span>
+                </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {CHANNELS.map(c => (
-                    <button key={c.value} onClick={() => { setSalesChannel(c.value); setError(''); }}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        salesChannel === c.value
-                          ? 'bg-amber-500/10 border-amber-500/40 text-amber-500'
-                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
-                      }`}>
-                      <p className="text-xs font-black">{c.label}</p>
-                      <p className="text-[10px] opacity-60 mt-0.5">{c.sub}</p>
-                    </button>
-                  ))}
+                  {CHANNELS.map(c => {
+                    const selected = salesChannels.includes(c.value);
+                    return (
+                      <button key={c.value}
+                        onClick={() => {
+                          setError('');
+                          setSalesChannels(prev =>
+                            selected
+                              ? prev.filter(v => v !== c.value)
+                              : [...prev, c.value]
+                          );
+                        }}
+                        className={`p-3 rounded-xl border text-left transition-all relative ${
+                          selected
+                            ? 'bg-amber-500/10 border-amber-500/40 text-amber-500'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                        }`}>
+                        {selected && (
+                          <span className="absolute top-2 right-2 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-black text-[8px] font-black">✓</span>
+                        )}
+                        <p className="text-xs font-black">{c.label}</p>
+                        <p className="text-[10px] opacity-60 mt-0.5">{c.sub}</p>
+                      </button>
+                    );
+                  })}
                 </div>
+                {salesChannels.length > 0 && (
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mt-2">
+                    {salesChannels.length} selected: {salesChannels.join(', ')}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -680,7 +887,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Setting up</p>
                 <p className="text-white font-black">{businessName}</p>
-                <p className="text-zinc-500 text-xs">{stage} · {salesChannel} · {revenue}</p>
+                <p className="text-zinc-500 text-xs">{stage} · {salesChannels.join(', ')} · {revenue}</p>
               </div>
 
               <div>
@@ -774,10 +981,33 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
           )}
 
           {/* ── Error ────────────────────────────────────────── */}
-          {error && (
+          {error && error !== '__EMAIL_EXISTS__' && (
             <div className="flex items-center gap-2 mt-5 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
               <AlertCircle size={13} className="text-red-400 shrink-0" />
               <p className="text-red-400 text-xs">{error}</p>
+            </div>
+          )}
+
+          {/* ── Email already registered — special prompt ─────── */}
+          {error === '__EMAIL_EXISTS__' && (
+            <div className="mt-5 px-4 py-4 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={13} className="text-amber-500 shrink-0" />
+                <p className="text-amber-500 text-xs font-black uppercase tracking-widest">Email Already Registered</p>
+              </div>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                <span className="text-zinc-200">{email}</span> is already linked to a BusinessRun account.
+              </p>
+              <button
+                onClick={() => {
+                  setLoginEmail(email);
+                  setMode('login');
+                  setError('');
+                }}
+                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-500 hover:text-amber-400 transition mt-1"
+              >
+                <LogIn size={11} /> Log in to your account instead →
+              </button>
             </div>
           )}
 
