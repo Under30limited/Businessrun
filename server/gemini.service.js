@@ -25,8 +25,14 @@
 
 const ApiError = require('../utils/ApiError');
 
+// Model name is read from env first so you can override it without a deploy.
+// Falls back to gemini-2.0-flash which supports the contents/systemInstruction
+// /generationConfig schema used throughout this file.
+const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+
 const GEMINI_URL =
-	"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // ── Shared Gemini fetch helper ────────────────────────────────────
 /**
