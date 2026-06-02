@@ -25,11 +25,10 @@
 
 const ApiError = require('../utils/ApiError');
 
-// Model name is read from env first so you can override it without a deploy.
-// Falls back to gemini-2.0-flash which supports the contents/systemInstruction
-// /generationConfig schema used throughout this file.
-const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+// Model name is read from env so you can swap models without a redeploy.
+// Falls back to gemini-2.0-flash — current, fast, and fully supports the
+// contents / systemInstruction / generationConfig schema used throughout.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 const GEMINI_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -56,10 +55,9 @@ async function callGemini(contents, systemInstruction, generationConfig = {}) {
 
   let response;
   try {
-    // node-fetch v3 is ESM-only — we use a dynamic import here.
-    // This is called once at startup so there is no per-request overhead.
-    const { default: fetch } = await import('node-fetch');
-
+    // Node 18+ ships a stable built-in fetch — no external dependency needed.
+    // Using node-fetch via dynamic import caused body-serialisation issues on
+    // Node 22 that produced the "Unknown name 'contents'" 400 from Gemini.
     response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
