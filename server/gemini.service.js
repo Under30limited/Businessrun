@@ -187,16 +187,11 @@ async function getAdvisorReply(message, history = []) {
     },
   ];
 
-  const rawText = await callGemini({
+  const rawText = await callGemini(
     contents,
-    systemInstruction: {
-      parts: [{ text: ADVISOR_SYSTEM_PROMPT }],
-    },
-    generationConfig: {
-      maxOutputTokens: 1024,
-      temperature: 0.7,
-    },
-  });
+    ADVISOR_SYSTEM_PROMPT,
+    { maxOutputTokens: 1024, temperature: 0.7 }
+  );
 
   // Clean model output (remove accidental HTML)
   const text = stripHtml(rawText)?.trim();
