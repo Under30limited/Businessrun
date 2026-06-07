@@ -691,38 +691,67 @@ function SaleReturnModal({ sale, onClose, onConfirm, isDeleting }) {
 // SALE ROW DROPDOWN MENU
 // ─────────────────────────────────────────────────────────────────
 function SaleMenu({ sale, onView, onEdit, onViewPayment, onSaleReturn, onReceipt }) {
-  const [open, setOpen] = useState(false);
-  const ref             = useRef(null);
+  const [open, setOpen]   = useState(false);
+  const [pos,  setPos]    = useState({ top: 0, left: 0 });
+  const btnRef            = useRef(null);
+  const menuRef           = useRef(null);
 
+  // Close on outside click
   useEffect(() => {
     function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        menuRef.current && !menuRef.current.contains(e.target) &&
+        btnRef.current  && !btnRef.current.contains(e.target)
+      ) setOpen(false);
     }
     if (open) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  // Calculate position when opening — anchors to the button using fixed coords
+  // so the menu escapes any overflow:hidden parent
+  function handleOpen(e) {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const rect      = btnRef.current.getBoundingClientRect();
+      const menuH     = 280; // approx height of the menu (5 items)
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp     = spaceBelow < menuH + 16;
+
+      setPos({
+        // Open upward if not enough space below, otherwise open downward
+        top:   openUp ? rect.top - menuH - 4 : rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(o => !o);
+  }
+
   const menuItems = [
-    { icon: <Eye size={13} />,        label: 'View',         desc: 'Full sale details & items',     action: onView        },
-    { icon: <Edit3 size={13} />,      label: 'Edit',         desc: 'Update buyer, channel or status', action: onEdit      },
-    { icon: <CreditCard size={13} />, label: 'View Payment', desc: 'How this sale was paid',         action: onViewPayment },
-    { icon: <RotateCcw size={13} />,  label: 'Sale Return',  desc: 'Delete & restore stock',         action: onSaleReturn, danger: true },
-    { icon: <Download size={13} />,   label: 'Receipt',      desc: 'Download printable receipt',     action: onReceipt    },
+    { icon: <Eye size={13} />,        label: 'View',         desc: 'Full sale details & items',       action: onView        },
+    { icon: <Edit3 size={13} />,      label: 'Edit',         desc: 'Update buyer, channel or status', action: onEdit        },
+    { icon: <CreditCard size={13} />, label: 'View Payment', desc: 'How this sale was paid',           action: onViewPayment },
+    { icon: <RotateCcw size={13} />,  label: 'Sale Return',  desc: 'Delete & restore stock',           action: onSaleReturn, danger: true },
+    { icon: <Download size={13} />,   label: 'Receipt',      desc: 'Download printable receipt',       action: onReceipt    },
   ];
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative print:hidden">
       <button
-        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className="w-8 h-8 flex items-center justify-center rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all print:hidden"
+        ref={btnRef}
+        onClick={handleOpen}
+        className="w-8 h-8 flex items-center justify-center rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 transition-all"
         title="Sale options">
         <MoreVertical size={14} className="text-zinc-500" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-20 w-56 bg-white border border-zinc-200 rounded-2xl shadow-xl overflow-hidden">
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999 }}
+          className="w-56 bg-white border border-zinc-200 rounded-2xl shadow-2xl overflow-hidden">
           <div className="py-1.5">
-            {menuItems.map((item, i) => (
+            {menuItems.map((item) => (
               <button key={item.label}
                 onClick={e => { e.stopPropagation(); setOpen(false); item.action(); }}
                 className={`w-full flex items-start gap-3 px-4 py-3 transition-all ${
