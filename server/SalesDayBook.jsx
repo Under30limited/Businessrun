@@ -708,21 +708,32 @@ function SaleMenu({ sale, onView, onEdit, onViewPayment, onSaleReturn, onReceipt
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
-  // Calculate position when opening — anchors to the button using fixed coords
-  // so the menu escapes any overflow:hidden parent
+  // Calculate position when opening.
+  // Menu is centered on the button horizontally, clamped to stay within
+  // the viewport on any screen size. Vertically it opens upward so it
+  // always appears ON TOP of the record row, never below or off-screen.
   function handleOpen(e) {
     e.stopPropagation();
     if (!open && btnRef.current) {
-      const rect      = btnRef.current.getBoundingClientRect();
-      const menuH     = 280; // approx height of the menu (5 items)
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const openUp     = spaceBelow < menuH + 16;
+      const rect    = btnRef.current.getBoundingClientRect();
+      const menuW   = 224; // w-56 = 14rem = 224px
+      const menuH   = 290; // approx height for 5 items with descriptions
+      const padding = 8;
 
-      setPos({
-        // Open upward if not enough space below, otherwise open downward
-        top:   openUp ? rect.top - menuH - 4 : rect.bottom + 4,
-        right: window.innerWidth - rect.right,
-      });
+      // Center the menu horizontally over the button
+      let left = rect.left + rect.width / 2 - menuW / 2;
+
+      // Clamp so it never overflows left or right edge of viewport
+      left = Math.max(padding, Math.min(left, window.innerWidth - menuW - padding));
+
+      // Always open upward — sits on top of the record row
+      // If not enough space above, open downward as fallback
+      const spaceAbove = rect.top;
+      const top = spaceAbove >= menuH + padding
+        ? rect.top - menuH - 4
+        : rect.bottom + 4;
+
+      setPos({ top, left });
     }
     setOpen(o => !o);
   }
@@ -748,7 +759,7 @@ function SaleMenu({ sale, onView, onEdit, onViewPayment, onSaleReturn, onReceipt
       {open && (
         <div
           ref={menuRef}
-          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999 }}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 }}
           className="w-56 bg-white border border-zinc-200 rounded-2xl shadow-2xl overflow-hidden">
           <div className="py-1.5">
             {menuItems.map((item) => (
