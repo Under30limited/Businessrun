@@ -1,12 +1,14 @@
 /**
  * services/gemini.service.js
  *
- * Dual-provider Gemini service — supports both Google AI Studio and Vertex AI.
- * Switch providers by setting GEMINI_PROVIDER in your .env:
+ * Multi-provider AI service — supports Google AI Studio, Vertex AI (Gemini),
+ * and AWS Bedrock (Claude). Switch providers by setting GEMINI_PROVIDER:
  *
  *   GEMINI_PROVIDER=aistudio   (default — uses GEMINI_API_KEY)
  *   GEMINI_PROVIDER=vertex     (uses VERTEX_PROJECT_ID + VERTEX_LOCATION +
  *                               GOOGLE_APPLICATION_CREDENTIALS)
+ *   GEMINI_PROVIDER=bedrock    (uses AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY +
+ *                               AWS_REGION + BEDROCK_MODEL_ID)
  *
  * All feature functions (getAdvisorReply, getAccountingReport, etc.) are
  * identical regardless of provider — only callGemini() changes internally.
@@ -23,8 +25,17 @@
  *   VERTEX_MODEL=gemini-2.0-flash        (optional, this is the default)
  *   GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
  *
- * ── Switching back to AI Studio ───────────────────────────────────
- *   Change GEMINI_PROVIDER=aistudio and pm2 restart businessrun-api
+ * ── AWS Bedrock setup (.env) ───────────────────────────────────────
+ *   GEMINI_PROVIDER=bedrock
+ *   AWS_ACCESS_KEY_ID=AKIA...
+ *   AWS_SECRET_ACCESS_KEY=xxxxxxxx
+ *   AWS_REGION=us-east-1
+ *   BEDROCK_MODEL_ID=anthropic.claude-sonnet-4-20250514-v1:0
+ *
+ *   Requires: npm install @aws-sdk/client-bedrock-runtime
+ *
+ * ── Switching providers ────────────────────────────────────────────
+ *   Change GEMINI_PROVIDER and pm2 restart businessrun-api
  *   No code changes needed.
  */
 
@@ -44,6 +55,10 @@ const VERTEX_PROJECT  = process.env.VERTEX_PROJECT_ID || '';
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION   || 'us-central1';
 const VERTEX_MODEL    = process.env.VERTEX_MODEL      || 'gemini-2.0-flash';
 const VERTEX_URL      = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
+
+// AWS Bedrock
+const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-sonnet-4-20250514-v1:0';
+const BEDROCK_REGION   = process.env.AWS_REGION       || 'us-east-1';
 
 // ── Vertex Auth — lazy-loaded Google Auth ─────────────────────────
 // We only import google-auth-library when PROVIDER=vertex so AI Studio
@@ -74,6 +89,53 @@ async function getVertexAccessToken() {
   return token.token || token;
 }
 
+// ── Bedrock client — lazy-loaded ──────────────────────────────────
+// We only import @aws-sdk/client-bedrock-runtime when PROVIDER=bedrock
+// so other providers don't need the package installed.
+let _bedrockClient = null;
+
+function getBedrockClient() {
+  if (!_bedrockClient) {
+    let BedrockRuntimeClient;
+    try {
+      ({ BedrockRuntimeClient } = require('@aws-sdk/client-bedrock-runtime'));
+    } catch {
+      throw new ApiError(
+        503,
+        '[Gemini/Bedrock] @aws-sdk/client-bedrock-runtime is not installed. ' +
+        'Run: npm install @aws-sdk/client-bedrock-runtime',
+        true
+      );
+    }
+    // Credentials are picked up automatically from
+    // AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN env vars,
+    // or from the default credential provider chain (IAM role, etc.)
+    _bedrockClient = new BedrockRuntimeClient({ region: BEDROCK_REGION });
+  }
+  return _bedrockClient;
+}
+
+/**
+ * Converts Gemini-style `contents` ([{ role: 'user'|'model', parts: [{text}] }])
+ * into Claude Messages API format ([{ role: 'user'|'assistant', content }]).
+ * Claude requires roles to alternate and the first message to be 'user' —
+ * this also merges/strips to satisfy that where possible.
+ */
+function geminiContentsToClaudeMessages(contents) {
+  const messages = contents.map(c => ({
+    role:    c.role === 'model' ? 'assistant' : 'user',
+    content: (c.parts || []).map(p => p.text).join('\n'),
+  }));
+
+  // Drop any leading assistant messages — Claude requires the first
+  // message to have role 'user'.
+  while (messages.length && messages[0].role === 'assistant') {
+    messages.shift();
+  }
+
+  return messages;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // callGemini — unified fetch helper (provider-agnostic interface)
 // ─────────────────────────────────────────────────────────────────
@@ -90,6 +152,70 @@ async function getVertexAccessToken() {
  * @returns {Promise<string>}
  */
 async function callGemini(contents, systemInstruction, generationConfig = {}) {
+  // ── AWS Bedrock (Claude) ─────────────────────────────────────────
+  // Completely different request/response shape from Gemini, so this
+  // branch handles everything itself and returns early.
+  if (PROVIDER === 'bedrock') {
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      throw ApiError.internal(
+        '[Gemini/Bedrock] AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are not set in environment variables.'
+      );
+    }
+
+    let InvokeModelCommand;
+    try {
+      ({ InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime'));
+    } catch {
+      throw new ApiError(
+        503,
+        '[Gemini/Bedrock] @aws-sdk/client-bedrock-runtime is not installed. ' +
+        'Run: npm install @aws-sdk/client-bedrock-runtime',
+        true
+      );
+    }
+
+    const client   = getBedrockClient();
+    const messages = geminiContentsToClaudeMessages(contents);
+
+    const payload = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens:         generationConfig.maxOutputTokens || 1024,
+      temperature:        generationConfig.temperature ?? 0.7,
+      system:             systemInstruction,
+      messages,
+    };
+
+    let response;
+    try {
+      const command = new InvokeModelCommand({
+        modelId:     BEDROCK_MODEL_ID,
+        contentType: 'application/json',
+        accept:      'application/json',
+        body:        JSON.stringify(payload),
+      });
+      response = await client.send(command);
+    } catch (err) {
+      console.error('[Gemini/Bedrock] API error:', err.message || err);
+      throw new ApiError(503, 'AI service is temporarily unavailable.', true);
+    }
+
+    let data;
+    try {
+      const rawText = Buffer.from(response.body).toString('utf-8');
+      data = JSON.parse(rawText);
+    } catch {
+      console.error('[Gemini/Bedrock] Non-JSON response from Bedrock.');
+      throw new ApiError(503, 'AI service returned an unexpected response.', true);
+    }
+
+    const text = (data.content || []).map(b => b.text || '').join('').trim();
+    if (!text) {
+      throw new ApiError(503, 'AI service returned an empty response.', true);
+    }
+    return text;
+  }
+
+  // ── Google providers (AI Studio / Vertex AI) ──────────────────────
   let url;
   let authHeader;
 
