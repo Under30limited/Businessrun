@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Correct mobile viewport — disables zoom on input focus on iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Theme color for mobile browser chrome (Android) -->
+    <meta name="theme-color" content="#ffffff" />
+    <title>BusinessRun | The Pulse of African Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- ── PWA Core ─────────────────────────────────────────────── -->
+    <meta name="application-name" content="BusinessRun" />
+    <meta name="theme-color" content="#C5A028" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- ── iOS / Safari PWA support ─────────────────────────────── -->
+    <!-- Safari on iOS does not read manifest.json for PWA — needs these -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BusinessRun" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+    <!-- ── Splash screen colour for iOS ─────────────────────────── -->
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+<meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+    <!-- ── Open Graph (social sharing) ──────────────────────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BusinessRun — Your Business OS" />
+    <meta property="og:description" content="Inventory, sales, CFO tools and AI insights built for Nigerian SMEs." />
+    <meta property="og:url" content="https://thebusinessrun.com" />
+    <meta property="og:image" content="https://thebusinessrun.com/icons/icon-512x512.png" />
+    <!-- ── Twitter Card ──────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BusinessRun — Your Business OS" />
+    <meta name="twitter:description" content="Inventory, sales, CFO tools and AI insights built for Nigerian SMEs." />
+    <!-- ── Structured Data / JSON-LD ─────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://thebusinessrun.com/#software",
+          "name": "The Business Run",
+          "alternateName": "BusinessRun",
+          "url": "https://thebusinessrun.com",
+          "description": "SaaS platform for Nigerian SMEs and retailers. AI-powered inventory, sales tracking, automated receipts, and Live Brain insights that gives your business prescriptive actions to take, business insight on sales and other data, build alternative credit profiles for informal businesses.",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, iOS, Android",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "NGN",
+            "description": "Access via Under30Women and other acceleration programs"
+          },
+          "creator": {
+            "@type": "Organization",
+            "@id": "https://thebusinessrun.com/#organization"
+          },
+          "featureList": [
+            "AI-powered inventory management",
+            "Real-time sales tracking",
+            "Automated receipts and bookkeeping",
+            "Live Brain prescriptive analytics",
+            "AI ledger for alternative credit scoring",
+            "MBS Master of Business Street curriculum integration"
+          ],
+          "keywords": "SME software Nigeria, retail SaaS, informal economy, alternative credit, inventory management, Under30Women, business formalization"
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://thebusinessrun.com/#organization",
+          "name": "The Business Run",
+          "url": "https://thebusinessrun.com",
+          "logo": "https://thebusinessrun.com/icons/icon-512x512.png",
+          "description": "Unified ecosystem manufacturing bankability for Africa's informal economy through technology and acceleration programs.",
+          "foundingDate": "2024",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Nigeria"
+          },
+          "knowsAbout": [
+            "SME digitization",
+            "Alternative credit scoring",
+            "Retail technology",
+            "Women-led enterprises",
+            "Informal economy formalization"
+          ],
+          "memberOf": {
+            "@type": "Organization",
+            "name": "Under30limited"
+          },
+          "sameAs": [
+            "https://www.linkedin.com/company/thebusinessrun",
+            "https://twitter.com/thebusinessrun_"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://thebusinessrun.com/#website",
+          "url": "https://thebusinessrun.com",
+          "name": "The Business Run",
+          "publisher": {
+            "@id": "https://thebusinessrun.com/#organization"
+          },
+          "inLanguage": "en-NG",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://thebusinessrun.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://thebusinessrun.com/#program",
+          "name": "Under30Women in Business",
+          "description": "21-week virtual acceleration program for 200 female-led SMEs across Nigeria using MBS curriculum from Interweave Solutions",
+          "parentOrganization": {
+            "@id": "https://thebusinessrun.com/#organization"
+          },
+          "educationalCredentialAwarded": "Master of Business Street Certificate",
+          "hasCredential": {
+            "@type": "EducationalOccupationalCredential",
+            "name": "MBS - Master of Business Street",
+            "credentialCategory": "Certificate",
+            "recognizedBy": {
+              "@type": "Organization",
+              "name": "Interweave Solutions"
+            }
+          }
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body class="text-slate-900">
+    <div id="root"></div>
+  </body>
+</html>
