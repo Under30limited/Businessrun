@@ -25,6 +25,7 @@ import {
   CheckCircle, ArrowRight, Menu, X,
   Loader2, Home, Sparkles, RefreshCcw,
   LogOut, MessageSquare, Calculator, Package, Receipt,
+  Globe, Edit2, Activity,
   Plus, Trash2, AlertCircle,
   BookOpen, TrendingDown,
 } from 'lucide-react';
@@ -47,6 +48,19 @@ const CATEGORIES = {
   'Balance Sheet':    ['Current Asset', 'Fixed Asset', 'Current Liability', 'Long-term Liability', 'Equity'],
   'Cash Flow':        ['Operating', 'Investing', 'Financing', 'Opening Balance'],
 };
+
+// ── Supported languages ──────────────────────────────────────────
+const LANGUAGES = [
+  { code: 'English', label: 'English',        flag: '🇬🇧' },
+  { code: 'Yoruba',  label: 'Yorùbá',         flag: '🇳🇬' },
+  { code: 'Hausa',   label: 'Hausa',          flag: '🇳🇬' },
+  { code: 'Igbo',    label: 'Igbo',           flag: '🇳🇬' },
+  { code: 'Pidgin',  label: 'Nigerian Pidgin', flag: '🇳🇬' },
+  { code: 'French',  label: 'Français',       flag: '🇫🇷' },
+  { code: 'Arabic',  label: 'العربية',        flag: '🇸🇦' },
+];
+
+const LANG_KEY = 'br_insight_language';
 
 const NAV_ITEMS = [
   { id: 'home',      label: 'Business OS',  icon: <Home size={16} /> },
@@ -88,13 +102,13 @@ const FALLBACK_INSIGHT = {
 };
 
 const ADVISOR_DOWN_MSG = '__ADVISOR_DOWN__';
-const inputClass = 'w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500 transition-colors';
+const inputClass = 'w-full bg-zinc-100 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500 transition-colors';
 const emptyEntry = () => ({ date: '', description: '', amount: '', category: '' });
 
 // ─────────────────────────────────────────────────────────────────
 // AI ADVISOR CHAT COMPONENT
 // ─────────────────────────────────────────────────────────────────
-function AdvisorChat({ initialPrompt, onPromptConsumed }) {
+function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEntries, inventoryItems, sales }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'TBR Strategic AI active. Share your current business progress or expansion plans. How can I help you scale today?' },
   ]);
@@ -136,7 +150,16 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
       const history = next.slice(1).slice(0, -1).map(m => ({ role: m.role, content: m.content }));
       const res  = await fetch('/api/advisor', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, history }),
+        credentials: 'include',
+        body: JSON.stringify({
+          message: msg,
+          history,
+          language: language || 'English',
+          profile,
+          cfoEntries,
+          inventory: inventoryItems,
+          sales,
+        }),
       });
       let data;
       try { data = await res.json(); } catch { setMessages(p => [...p, { role: 'assistant', content: ADVISOR_DOWN_MSG }]); return; }
@@ -155,7 +178,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
             <Sparkles className="text-amber-500" size={18} />
           </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
+            <p className="text-sm font-black uppercase tracking-widest text-zinc-900 flex items-center gap-2">
               Strategic AI Advisor
               <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </p>
@@ -163,7 +186,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
           </div>
         </div>
         <button onClick={() => { chatInteracted.current = false; setMessages([{ role: 'assistant', content: 'Chat cleared. How can I assist?' }]); }}
-          className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-zinc-400 hover:text-white transition-all" title="Clear chat">
+          className="p-2.5 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-600 hover:text-zinc-900 transition-all" title="Clear chat">
           <RefreshCcw size={15} />
         </button>
       </div>
@@ -173,19 +196,19 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex gap-3 max-w-[88%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.role === 'user' ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-amber-500 border border-zinc-700'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.role === 'user' ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-amber-500 border border-zinc-300'}`}>
                 {m.role === 'user' ? <User size={13} /> : <Bot size={13} />}
               </div>
               {m.content === ADVISOR_DOWN_MSG ? (
-                <div className="p-4 rounded-2xl text-[11px] leading-relaxed bg-zinc-900 border border-zinc-700 text-zinc-400 flex items-start gap-3">
+                <div className="p-4 rounded-2xl text-[11px] leading-relaxed bg-zinc-100 border border-zinc-300 text-zinc-600 flex items-start gap-3">
                   <span className="text-lg">🛠️</span>
                   <div>
-                    <p className="font-black text-zinc-300 uppercase tracking-widest text-[9px] mb-1">Advisor Unavailable</p>
+                    <p className="font-black text-zinc-700 uppercase tracking-widest text-[9px] mb-1">Advisor Unavailable</p>
                     <p>The advisory is currently down. Please try again shortly.</p>
                   </div>
                 </div>
               ) : (
-                <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
+                <div className={`p-4 rounded-2xl text-[11px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-amber-500 text-black font-bold' : 'bg-zinc-100 border border-zinc-200 text-zinc-700'}`}>
                   {renderMessageContent(m.content)}
                 </div>
               )}
@@ -193,7 +216,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
           </div>
         ))}
         {isLoading && (
-          <div className="flex gap-3 items-center bg-zinc-900/50 p-4 rounded-2xl w-fit">
+          <div className="flex gap-3 items-center bg-zinc-100/80 p-4 rounded-2xl w-fit">
             <Loader2 size={14} className="text-amber-500 animate-spin" />
             <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Processing...</span>
           </div>
@@ -208,7 +231,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
             placeholder="Ask your AI Advisor anything..."
-            className="w-full bg-zinc-900 border border-zinc-700 focus:border-amber-500 rounded-2xl px-5 py-4 pr-14 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition resize-none"
+            className="w-full bg-zinc-100 border border-zinc-300 focus:border-amber-500 rounded-2xl px-5 py-4 pr-14 text-sm text-zinc-900 placeholder:text-zinc-600 focus:outline-none transition resize-none"
           />
           <button type="submit" disabled={isLoading || !input.trim()}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 rounded-xl flex items-center justify-center transition-all">
@@ -325,7 +348,7 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
     <div className="space-y-8 pb-20">
 
       {/* Header */}
-      <div className="border-b border-zinc-900 -mx-5 px-5 pb-8">
+      <div className="border-b border-zinc-200 -mx-5 px-5 pb-8">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic uppercase mb-2">Digital CFO</h1>
@@ -346,7 +369,7 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
               className={`p-4 rounded-2xl border text-left transition-all relative ${
                 activeTool === tool
                   ? 'bg-amber-500/10 border-amber-500/40 text-amber-500'
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                  : 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-700'
               }`}>
               {count > 0 && (
                 <span className="absolute top-3 right-3 w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
@@ -362,8 +385,8 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
       </div>
 
       {/* Entry Form */}
-      <div className="bg-zinc-950 border border-zinc-900 rounded-[2rem] overflow-hidden">
-        <div className="border-b border-zinc-900 px-8 py-5 flex items-center justify-between">
+      <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-sm overflow-hidden">
+        <div className="border-b border-zinc-100 px-8 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black italic uppercase">{activeTool}</h2>
             <p className="text-zinc-600 text-xs mt-0.5">
@@ -407,34 +430,34 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
           )}
 
           <button onClick={addEntry} disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+            className="flex items-center gap-2 px-6 py-3 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50 text-zinc-800 hover:text-zinc-900 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
             {isSaving ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : <><Plus size={14} /> Add Entry</>}
           </button>
 
           {/* Entries table */}
           {transactions.length > 0 && (
-            <div className="border border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-[1fr_1fr_auto_auto] bg-zinc-900 px-4 py-2 gap-4">
+            <div className="border border-zinc-200 rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-[1fr_1fr_auto_auto] bg-zinc-100 px-4 py-2 gap-4">
                 {['Date', 'Description / Category', 'Amount', ''].map((h, i) => (
                   <p key={i} className="text-[9px] font-black uppercase tracking-widest text-zinc-600">{h}</p>
                 ))}
               </div>
-              <div className="divide-y divide-zinc-900">
+              <div className="divide-y divide-zinc-100">
                 {transactions.map((t) => (
-                  <div key={t.id} className="grid grid-cols-[1fr_1fr_auto_auto] items-center px-4 py-3 gap-4 hover:bg-zinc-900/30 transition">
+                  <div key={t.id} className="grid grid-cols-[1fr_1fr_auto_auto] items-center px-4 py-3 gap-4 hover:bg-zinc-50 transition">
                     <span className="text-xs text-zinc-500 font-mono">{t.date}</span>
                     <div>
-                      <p className="text-xs text-zinc-200">{t.description}</p>
+                      <p className="text-xs text-zinc-800">{t.description}</p>
                       <p className="text-[10px] text-zinc-600 mt-0.5">{t.category}</p>
                     </div>
-                    <span className="text-xs font-black font-mono text-white">₦{Number(t.amount).toLocaleString()}</span>
+                    <span className="text-xs font-black font-mono text-zinc-900">₦{Number(t.amount).toLocaleString()}</span>
                     <button onClick={() => removeEntry(t.id)} className="text-zinc-700 hover:text-red-400 transition">
                       <Trash2 size={13} />
                     </button>
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-zinc-900/60 border-t border-zinc-800">
+              <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-zinc-50 border-t border-zinc-200">
                 <div className="flex justify-between items-center px-3 py-2 bg-green-500/5 border border-green-500/20 rounded-xl">
                   <span className="text-[10px] font-black uppercase tracking-widest text-green-500/70">Credits</span>
                   <span className="text-sm font-black text-green-400">₦{localTotals.credits.toLocaleString()}</span>
@@ -464,18 +487,18 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
           )}
 
           {advisorDown && (
-            <div className="flex items-start gap-3 px-4 py-4 bg-zinc-900 border border-zinc-700 rounded-2xl">
+            <div className="flex items-start gap-3 px-4 py-4 bg-zinc-100 border border-zinc-300 rounded-2xl">
               <span className="text-lg">🛠️</span>
               <div>
-                <p className="font-black text-zinc-300 uppercase tracking-widest text-[9px] mb-1">Service Unavailable</p>
-                <p className="text-zinc-400 text-xs leading-relaxed">The AI report engine is currently down. Your entries are saved — please try again shortly.</p>
+                <p className="font-black text-zinc-700 uppercase tracking-widest text-[9px] mb-1">Service Unavailable</p>
+                <p className="text-zinc-600 text-xs leading-relaxed">The AI report engine is currently down. Your entries are saved — please try again shortly.</p>
               </div>
             </div>
           )}
 
           {/* Report */}
           {report && (
-            <div className="space-y-4 border-t border-zinc-800 pt-8">
+            <div className="space-y-4 border-t border-zinc-200 pt-8">
               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-600">AI Report — {activeTool}</p>
               {report.totals && Object.keys(report.totals).length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -486,8 +509,8 @@ function DigitalCFO({ uid, allEntries, setAllEntries }) {
                   {report.totals.liabilities !== undefined && <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3"><p className="text-[9px] font-black uppercase tracking-widest text-orange-400/70 mb-1">Total Liabilities</p><p className="text-lg font-black text-orange-400">₦{Number(report.totals.liabilities).toLocaleString()}</p></div>}
                 </div>
               )}
-              {report.audit   && <div className="px-5 py-4 bg-zinc-900 border border-zinc-800 rounded-2xl"><p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Audit Check</p><p className="text-sm text-zinc-300 leading-relaxed">{report.audit}</p></div>}
-              {report.insight && <div className="px-5 py-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl"><p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-2">Strategic Insight</p><p className="text-sm text-zinc-300 leading-relaxed">{report.insight}</p></div>}
+              {report.audit   && <div className="px-5 py-4 bg-zinc-100 border border-zinc-200 rounded-2xl"><p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Audit Check</p><p className="text-sm text-zinc-700 leading-relaxed">{report.audit}</p></div>}
+              {report.insight && <div className="px-5 py-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl"><p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-2">Strategic Insight</p><p className="text-sm text-zinc-700 leading-relaxed">{report.insight}</p></div>}
             </div>
           )}
         </div>
@@ -558,12 +581,45 @@ export default function RoadmapPage() {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [sales,          setSales]          = useState([]);
 
+  // ── Language state ────────────────────────────────────────────
+  const [language,       setLanguage]       = useState(
+    () => localStorage.getItem(LANG_KEY) || ''
+  );
+  const [showLangModal,  setShowLangModal]  = useState(false);
+  // Track whether we've already prompted for language this session so
+  // we never show it again after the user has selected once — even after
+  // logout/login cycles (localStorage persists the choice across sessions).
+  const langModalShownRef = useRef(false);
+  // Prevent double-fetching data when user restores after a page refresh
+  const dataFetchedRef = useRef(false);
+
+  // ── Business Pulse state ──────────────────────────────────────
+  const [businessPulse,  setBusinessPulse]  = useState(null);
+  const [pulseLoading,   setPulseLoading]   = useState(false);
+
   // ── Auth guard ────────────────────────────────────────────────
   const hasRouteState = Object.keys(routeState).length > 0;
   useEffect(() => {
     if (isRestoring) return;
     if (!hasRouteState && !isAuthenticated) navigate('/', { replace: true });
   }, [isRestoring, isAuthenticated, hasRouteState, navigate]);
+
+  // ── Show language selector on first load ─────────────────────
+  // Only show if: auth is resolved, user is present, no language is stored
+  // in localStorage, AND we haven't already shown it this mount cycle.
+  // The ref prevents the modal from re-appearing after logout/login because
+  // localStorage retains the choice — language is never '' for returning users.
+  useEffect(() => {
+    if (
+      !isRestoring &&
+      (hasRouteState || isAuthenticated) &&
+      !language &&
+      !langModalShownRef.current
+    ) {
+      langModalShownRef.current = true;
+      setShowLangModal(true);
+    }
+  }, [isRestoring, isAuthenticated, hasRouteState, language]);
 
   // ── Load generic roadmap insight ─────────────────────────────
   useEffect(() => {
@@ -586,7 +642,7 @@ export default function RoadmapPage() {
     try {
       const res  = await fetch('/api/roadmap-insight', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache }),
+        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache, language: language || 'English' }),
       });
       const data = await res.json();
       setGenericInsight(data.insight || FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
@@ -597,10 +653,18 @@ export default function RoadmapPage() {
     }
   }
 
-  // ── Load CFO entries on mount ─────────────────────────────────
+  // ── Load CFO entries, inventory, sales on mount (or auth restore) ─────
+  // On a page refresh, user is null during the auth restoration phase.
+  // By depending on user?.uid, this effect re-runs once auth resolves
+  // and user.uid becomes available — ensuring data always loads.
+  // The dataFetchedRef prevents a double-fetch if the effect fires twice.
   useEffect(() => {
     const uid = user?.uid || profile?.uid;
-    if (!uid) { setEntriesLoaded(true); return; }
+    if (!uid || dataFetchedRef.current) { 
+      if (!uid) setEntriesLoaded(true);
+      return; 
+    }
+    dataFetchedRef.current = true;
 
     async function loadEntries() {
       try {
@@ -630,6 +694,11 @@ export default function RoadmapPage() {
         if (salesData.success && salesData.sales) {
           setSales(salesData.sales);
         }
+
+        // Fetch Business Pulse once all data layers are loaded
+        // Small timeout so state updates settle first
+        setTimeout(() => fetchBusinessPulse(), 800);
+
       } catch {
         // Silent fail — fall back to generic insight, empty inventory
       } finally {
@@ -638,7 +707,7 @@ export default function RoadmapPage() {
     }
 
     loadEntries();
-  }, []);
+  }, [user?.uid]);  // re-runs once uid becomes available after auth restore
 
   // ── Fetch CFO-informed insight ────────────────────────────────
   async function fetchCFOInsight(entries) {
@@ -648,7 +717,7 @@ export default function RoadmapPage() {
         method:      'POST',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: { businessName, stage, salesChannel, headache } }),
+        body: JSON.stringify({ profile: { businessName, stage, salesChannel, headache, language: language || 'English' } }),
       });
       const data = await res.json();
       if (data.success && data.insight) setCfoInsight(data.insight);
@@ -657,6 +726,29 @@ export default function RoadmapPage() {
     } finally {
       setCfoRefreshing(false);
     }
+  }
+
+  // ── Fetch Business Pulse ─────────────────────────────────────
+  async function fetchBusinessPulse() {
+    const uid = user?.uid || profile?.uid;
+    if (!uid) return;
+    setPulseLoading(true);
+    try {
+      const res  = await fetch('/api/cfo/pulse', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile:   { businessName, stage, salesChannel, headache, language: language || 'English' },
+          inventory: inventoryItems,
+          sales:     sales.slice(0, 30),
+          language:  language || 'English',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.pulse) setBusinessPulse(data.pulse);
+    } catch { /* silent — pulse is additive, not critical */ }
+    finally   { setPulseLoading(false); }
   }
 
   // Active insight: CFO-informed when available, generic otherwise
@@ -668,6 +760,20 @@ export default function RoadmapPage() {
   const totalEntries = Object.values(allEntries).reduce((s, a) => s + a.length, 0);
 
   // ── Navigation helpers ────────────────────────────────────────
+  // ── Language selection ───────────────────────────────────────
+  function selectLanguage(lang) {
+    localStorage.setItem(LANG_KEY, lang);
+    setLanguage(lang);
+    setShowLangModal(false);
+    // Re-fetch insights with new language
+    setGenericInsight(null);
+    setCfoInsight(null);
+    setBusinessPulse(null);
+    setLoading(true);
+    setTimeout(() => fetchGenericInsight(), 100);
+    setTimeout(() => fetchBusinessPulse(), 1200);
+  }
+
   function openAdvisorWithPrompt(prompt) {
     setAdvisorPrompt(prompt);
     setActiveView('advisor');
@@ -684,20 +790,57 @@ export default function RoadmapPage() {
     await logout(navigate);
   }
 
+  // ── Language Selector Modal ──────────────────────────────────
+  const langModal = showLangModal && (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(8px)' }}>
+      <div className="bg-white border border-zinc-200 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div className="h-1 w-full bg-amber-500" />
+        <div className="px-7 pt-6 pb-7">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center">
+              <Globe size={18} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-zinc-900 font-black text-base">Choose Insight Language</p>
+              <p className="text-zinc-500 text-xs mt-0.5">Your dashboard insights will appear in this language</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {LANGUAGES.map(lang => (
+              <button key={lang.code} onClick={() => selectLanguage(lang.code)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 hover:border-amber-500/40 hover:bg-amber-500/5 text-left transition-all group">
+                <span className="text-xl">{lang.flag}</span>
+                <div>
+                  <p className="text-sm font-black text-zinc-800 group-hover:text-zinc-900">{lang.label}</p>
+                  <p className="text-[10px] text-zinc-600">{lang.code}</p>
+                </div>
+                {language === lang.code && <CheckCircle size={14} className="text-amber-500 ml-auto" />}
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-[10px] font-black uppercase tracking-widest text-zinc-700 mt-5">
+            You can change this any time from the dashboard
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   // ── Session restoring screen ─────────────────────────────────
   // Shown while /api/auth/me is in flight on page refresh.
   // Must come AFTER all hooks — conditional returns before hooks
   // cause React to panic (different hook count between renders).
   if (isRestoring) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mb-8 animate-pulse">
+      <div className="min-h-screen bg-orange-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mb-8 animate-pulse">
           <Zap size={28} className="text-amber-500" />
         </div>
         <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-3">
           BusinessRun OS
         </p>
-        <p className="text-white text-lg font-black mb-6">Restoring your session...</p>
+        <p className="text-zinc-900 text-lg font-black mb-6">Restoring your session...</p>
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
             <div key={i} className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"
@@ -716,12 +859,12 @@ export default function RoadmapPage() {
   // ── Loading screen ────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mb-8 animate-pulse">
+      <div className="min-h-screen bg-orange-50 flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-16 h-16 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mb-8 animate-pulse">
           <Zap size={28} className="text-amber-500" />
         </div>
         <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-3">BusinessRun OS</p>
-        <p className="text-white text-xl font-black">{loadMsg}</p>
+        <p className="text-zinc-900 text-xl font-black">{loadMsg}</p>
         <div className="flex gap-1.5 mt-6">
           {[0,1,2].map(i => (
             <div key={i} className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -732,10 +875,11 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-white text-zinc-900 flex flex-col">
+      {langModal}
 
       {/* ── Dashboard Navigation ─────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-zinc-950/95 backdrop-blur-md border-b border-zinc-900">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
           <button onClick={handleLogout} className="flex items-center gap-2 group" title="Exit to home">
             <span className="text-xs font-black uppercase tracking-widest text-amber-500 group-hover:text-amber-400 transition italic">BusinessRun</span>
@@ -745,22 +889,22 @@ export default function RoadmapPage() {
             {NAV_ITEMS.find(n => n.id === activeView)?.label}
           </span>
           <button onClick={() => setMenuOpen(o => !o)}
-            className="w-9 h-9 flex items-center justify-center bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl transition-all"
+            className="w-9 h-9 flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl transition-all"
             aria-label="Toggle menu">
-            {menuOpen ? <X size={16} className="text-white" /> : <Menu size={16} className="text-zinc-400" />}
+            {menuOpen ? <X size={16} className="text-zinc-900" /> : <Menu size={16} className="text-zinc-600" />}
           </button>
         </div>
 
         {/* Slide-down nav panel */}
         {menuOpen && (
-          <div className="border-t border-zinc-900 bg-zinc-950">
+          <div className="border-t border-zinc-200 bg-white">
             <div className="max-w-5xl mx-auto px-5 py-4 space-y-1">
               {NAV_ITEMS.map(item => (
                 <button key={item.id} onClick={() => openView(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     activeView === item.id
                       ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                      : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+                      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
                   }`}>
                   {item.icon}
                   {item.label}
@@ -782,9 +926,9 @@ export default function RoadmapPage() {
                   {activeView === item.id && <span className="ml-auto w-1.5 h-1.5 bg-amber-500 rounded-full" />}
                 </button>
               ))}
-              <div className="pt-2 border-t border-zinc-900 mt-2">
+              <div className="pt-2 border-t border-zinc-200 mt-2">
                 <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-all">
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-red-500 hover:bg-red-50 transition-all">
                   <LogOut size={16} /> Exit to Home
                 </button>
               </div>
@@ -796,18 +940,28 @@ export default function RoadmapPage() {
       {/* ── View: Business OS ─────────────────────────────────── */}
       {activeView === 'home' && (
         <div className="flex-1 pb-20">
-          <div className="border-b border-zinc-900 bg-zinc-950">
+          <div className="border-b border-zinc-200 bg-zinc-50">
             <div className="max-w-5xl mx-auto px-5 py-8">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Business OS Initialised</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic uppercase text-white mb-2">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic uppercase text-zinc-900 mb-2">
                 Welcome, {businessName}!
               </h1>
               <p className="text-zinc-500 text-sm">
                 Your personalised Business OS is ready.{fullName && ` Built for ${fullName}.`}
               </p>
+              {language && (
+                <button onClick={() => setShowLangModal(true)}
+                  className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-zinc-100 border border-zinc-200 rounded-full hover:border-amber-500/40 transition group w-fit">
+                  <Globe size={11} className="text-zinc-500 group-hover:text-amber-500 transition" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-amber-500 transition">
+                    {LANGUAGES.find(l => l.code === language)?.flag} {language}
+                  </span>
+                  <Edit2 size={10} className="text-zinc-700 group-hover:text-amber-500 transition" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -840,37 +994,37 @@ export default function RoadmapPage() {
             </div>
 
             {/* Sector Intelligence */}
-            <div className="bg-zinc-950 border border-zinc-800 rounded-[2rem] overflow-hidden">
-              <div className="border-b border-zinc-900 px-8 py-5 flex items-center justify-between">
+            <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-sm overflow-hidden">
+              <div className="border-b border-zinc-100 px-8 py-5 flex items-center justify-between">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">
                     {cfoInsight ? 'Financial Intelligence' : 'Sector Intelligence'}
                   </p>
-                  <h2 className="text-white font-black text-lg">{salesChannel} · {activeInsight.sectorFocus}</h2>
+                  <h2 className="text-zinc-900 font-black text-lg">{salesChannel} · {activeInsight.sectorFocus}</h2>
                 </div>
                 <span className="text-2xl">{cfoInsight ? '📈' : '📊'}</span>
               </div>
               <div className="px-8 py-7 space-y-4">
-                <p className="text-zinc-400 text-sm leading-relaxed">{activeInsight.sectorDetail}</p>
-                <div className="flex items-start gap-3 bg-zinc-900 rounded-xl px-4 py-3">
+                <p className="text-zinc-600 text-sm leading-relaxed">{activeInsight.sectorDetail}</p>
+                <div className="flex items-start gap-3 bg-zinc-100 rounded-xl px-4 py-3">
                   <CheckCircle size={14} className="text-green-400 mt-0.5 shrink-0" />
-                  <p className="text-sm text-zinc-300 leading-relaxed">
-                    <strong className="text-white">Action this week:</strong> {activeInsight.weeklyAction}
+                  <p className="text-sm text-zinc-700 leading-relaxed">
+                    <strong className="text-zinc-900">Action this week:</strong> {activeInsight.weeklyAction}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Headache Advice */}
-            <div className="bg-zinc-950 border border-zinc-800 rounded-[2rem] overflow-hidden">
-              <div className="border-b border-zinc-900 px-8 py-5">
+            <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-sm overflow-hidden">
+              <div className="border-b border-zinc-100 px-8 py-5">
                 <p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">Operational Fix</p>
-                <h2 className="text-white font-black text-lg">
-                  Your headache: <span className="text-zinc-400 font-normal">{headache}</span>
+                <h2 className="text-zinc-900 font-black text-lg">
+                  Your headache: <span className="text-zinc-600 font-normal">{headache}</span>
                 </h2>
               </div>
               <div className="px-8 py-7 space-y-4">
-                <p className="text-zinc-400 text-sm leading-relaxed">{activeInsight.headacheAdvice}</p>
+                <p className="text-zinc-600 text-sm leading-relaxed">{activeInsight.headacheAdvice}</p>
                 <button
                   onClick={() => openAdvisorWithPrompt(
                     `I run a ${stage} stage ${salesChannel} business. My biggest headache is "${headache}". Give me a 3-step action plan to fix this in the next 30 days.`
@@ -878,6 +1032,94 @@ export default function RoadmapPage() {
                   className="flex items-center gap-2 px-6 py-3 bg-amber-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-amber-400 transition">
                   Ask AI Advisor <ArrowRight size={13} />
                 </button>
+              </div>
+            </div>
+
+            {/* Business Pulse — Cross-layer intelligence */}
+            <div className="bg-white border border-zinc-200 rounded-[2rem] shadow-sm overflow-hidden">
+              <div className="border-b border-zinc-100 px-8 py-5 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">Business Pulse</p>
+                  <h2 className="text-zinc-900 font-black text-lg">Cross-Layer Intelligence</h2>
+                  <p className="text-zinc-600 text-xs mt-0.5">Sales · Inventory · CFO — synthesised</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {businessPulse && (
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-black text-amber-500">{businessPulse.pulseScore}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600">/10</span>
+                    </div>
+                  )}
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 border border-amber-500/20">
+                    <Activity size={18} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 py-6">
+                {pulseLoading && (
+                  <div className="flex items-center gap-3 py-4">
+                    <Loader2 size={14} className="text-amber-500 animate-spin" />
+                    <p className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                      Analysing your business data across all layers...
+                    </p>
+                  </div>
+                )}
+
+                {!pulseLoading && !businessPulse && (
+                  <div className="text-center py-6">
+                    <p className="text-zinc-600 text-sm leading-relaxed mb-4">
+                      Add data to your Sales Day Book, Inventory, and Digital CFO to unlock cross-layer business intelligence.
+                    </p>
+                    <button onClick={fetchBusinessPulse}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 border border-zinc-200 hover:border-amber-500/40 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-amber-500 transition mx-auto">
+                      <Activity size={12} /> Generate Pulse
+                    </button>
+                  </div>
+                )}
+
+                {!pulseLoading && businessPulse && (
+                  <div className="space-y-4">
+                    {/* Three signal cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: '💰 Financial', key: 'financialSignal', color: 'green' },
+                        { label: '📦 Inventory', key: 'inventorySignal', color: 'blue'  },
+                        { label: '📈 Sales',     key: 'salesSignal',     color: 'amber' },
+                      ].map(({ label, key, color }) => (
+                        <div key={key} className={`px-4 py-4 rounded-2xl border ${
+                          color === 'green' ? 'bg-green-500/5 border-green-500/20' :
+                          color === 'blue'  ? 'bg-blue-500/5  border-blue-500/20'  :
+                          'bg-amber-500/5 border-amber-500/20'
+                        }`}>
+                          <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${
+                            color === 'green' ? 'text-green-500' :
+                            color === 'blue'  ? 'text-blue-400'  :
+                            'text-amber-500'
+                          }`}>{label}</p>
+                          <p className="text-zinc-700 text-xs leading-relaxed">{businessPulse[key]}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Priority action */}
+                    <div className="flex items-start gap-3 bg-amber-500 rounded-2xl px-5 py-4">
+                      <CheckCircle size={16} className="text-black mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-black/60 mb-1">Priority Action Now</p>
+                        <p className="text-black font-black text-sm leading-snug">{businessPulse.priorityAction}</p>
+                      </div>
+                    </div>
+
+                    {/* Refresh button */}
+                    <div className="flex justify-end">
+                      <button onClick={fetchBusinessPulse} disabled={pulseLoading}
+                        className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-amber-500 transition px-3 py-2 rounded-xl bg-zinc-100 border border-zinc-200 hover:border-amber-500/20">
+                        <Activity size={11} /> Refresh Pulse
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -891,12 +1133,12 @@ export default function RoadmapPage() {
                       if (card.view === 'cfo') { openView('cfo'); }
                       else { openAdvisorWithPrompt(card.prompt); }
                     }}
-                    className="bg-zinc-950 border border-zinc-800 hover:border-amber-500/40 rounded-2xl p-6 flex flex-col gap-3 transition-all text-left cursor-pointer group">
+                    className="bg-white border border-zinc-200 hover:border-amber-500/40 rounded-2xl p-6 flex flex-col gap-3 transition-all text-left cursor-pointer group">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-black transition-all">
                       {card.icon}
                     </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-widest text-zinc-300 mb-1">{card.title}</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-zinc-700 mb-1">{card.title}</p>
                       <p className="text-[11px] text-zinc-600 leading-relaxed">{card.desc}</p>
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 flex items-center gap-1">
@@ -913,10 +1155,15 @@ export default function RoadmapPage() {
       {/* ── View: AI Advisor ──────────────────────────────────── */}
       {activeView === 'advisor' && (
         <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-5 py-8" style={{ minHeight: 0 }}>
-          <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-[2rem] p-6 sm:p-8 flex flex-col" style={{ minHeight: '600px' }}>
+          <div className="flex-1 bg-white border border-zinc-200 rounded-[2rem] shadow-sm p-6 sm:p-8 flex flex-col" style={{ minHeight: '600px' }}>
             <AdvisorChat
               initialPrompt={advisorPrompt}
               onPromptConsumed={() => setAdvisorPrompt('')}
+              language={language}
+              profile={{ businessName, stage, salesChannel, headache }}
+              cfoEntries={allEntries}
+              inventoryItems={inventoryItems}
+              sales={sales}
             />
           </div>
         </div>
@@ -960,6 +1207,7 @@ export default function RoadmapPage() {
             setSales={setSales}
             inventoryItems={inventoryItems}
             setInventoryItems={setInventoryItems}
+            businessName={businessName}
           />
         </div>
       )}
