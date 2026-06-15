@@ -30,7 +30,7 @@
  *   AWS_ACCESS_KEY_ID=AKIA...
  *   AWS_SECRET_ACCESS_KEY=xxxxxxxx
  *   AWS_REGION=us-east-1
- *   BEDROCK_MODEL_ID=anthropic.claude-sonnet-4-20250514-v1:0
+ *   BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
  *
  *   Requires: npm install @aws-sdk/client-bedrock-runtime
  *
@@ -57,7 +57,7 @@ const VERTEX_MODEL    = process.env.VERTEX_MODEL      || 'gemini-2.0-flash';
 const VERTEX_URL      = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
 
 // AWS Bedrock
-const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-sonnet-4-20250514-v1:0';
+const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 const BEDROCK_REGION   = process.env.AWS_REGION       || 'us-east-1';
 
 // ── Vertex Auth — lazy-loaded Google Auth ─────────────────────────
@@ -307,17 +307,18 @@ function stripHtml(input) {
 // ── Language instruction helper ───────────────────────────────────
 const SUPPORTED_LANGUAGES = {
   'English': 'Respond in clear, simple English.',
-  'Yoruba':  'Respond in Yoruba language. Use natural, conversational Yoruba that a Nigerian business owner would understand. JSON keys must remain in English.',
-  'Hausa':   'Respond in Hausa language. Use natural, conversational Hausa that a Nigerian business owner would understand. JSON keys must remain in English.',
-  'Igbo':    'Respond in Igbo language. Use natural, conversational Igbo that a Nigerian business owner would understand. JSON keys must remain in English.',
-  'Pidgin':  'Respond in Nigerian Pidgin English. Use natural pidgin that feels familiar to a Lagos or Port Harcourt business owner. JSON keys must remain in English.',
-  'French':  'Respond in French. JSON keys must remain in English.',
-  'Arabic':  'Respond in Arabic. JSON keys must remain in English.',
+  'Yoruba':  'Respond entirely in Yoruba. Use natural, everyday Yoruba that a Nigerian business owner in Lagos or Ibadan would speak — not formal textbook Yoruba. Use proper Yoruba diacritics (e.g. á, è, ọ, ṣ) where natural. Do not mix in English sentences; only keep universally-used loanwords (e.g. "bank", "phone") if there is truly no common Yoruba equivalent. JSON keys must remain in English exactly as specified — only the values should be in Yoruba.',
+  'Hausa':   'Respond entirely in Hausa. Use natural, everyday Hausa that a Nigerian business owner in Kano or Kaduna would speak — not formal textbook Hausa. Do not mix in English sentences; only keep universally-used loanwords (e.g. "bank", "phone") if there is truly no common Hausa equivalent. JSON keys must remain in English exactly as specified — only the values should be in Hausa.',
+  'Igbo':    'Respond entirely in Igbo. Use natural, everyday Igbo that a Nigerian business owner in Enugu or Onitsha would speak — not formal textbook Igbo. Use proper Igbo diacritics (e.g. ọ, ụ, ṅ) where natural. Do not mix in English sentences; only keep universally-used loanwords (e.g. "bank", "phone") if there is truly no common Igbo equivalent. JSON keys must remain in English exactly as specified — only the values should be in Igbo.',
+  'Pidgin':  'Respond entirely in Nigerian Pidgin English. Use natural pidgin that feels familiar to a Lagos or Port Harcourt business owner — full pidgin phrasing and sentence structure, not standard English with a few pidgin words sprinkled in. JSON keys must remain in English exactly as specified — only the values should be in Pidgin.',
+  'French':  'Respond entirely in French, using natural business French. JSON keys must remain in English exactly as specified — only the values should be in French.',
+  'Arabic':  'Respond entirely in Modern Standard Arabic, using natural business Arabic. JSON keys must remain in English exactly as specified — only the values should be in Arabic.',
 };
 
 function getLanguageInstruction(language) {
   return SUPPORTED_LANGUAGES[language] || SUPPORTED_LANGUAGES['English'];
 }
+
 
 function parseJsonResponse(raw) {
   const cleaned = raw.replace(/```json|```/g, '').trim();
@@ -328,19 +329,145 @@ function parseJsonResponse(raw) {
   }
 }
 
+// ── Shared business data summariser ───────────────────────────────
+// Builds a plain-text summary of a user's CFO entries, inventory and
+// sales data. Used by both the AI Advisor (so it can act like an
+// in-house financial officer with full context) and Business Pulse.
+//
+// @param {Object}   cfoEntries  { 'General Ledger': [...], ... }
+// @param {Object[]} inventory   Inventory items
+// @param {Object[]} sales       Sales records (most recent first)
+// @returns {string} Plain-text summary, or '' if no data exists
+function buildBusinessDataSummary({ cfoEntries, inventory, sales }) {
+  const lines = [];
+
+  // CFO summary
+  const cfoTotals = {};
+  Object.entries(cfoEntries || {}).forEach(([tool, entries]) => {
+    if (!entries || entries.length === 0) return;
+    const total = entries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    cfoTotals[tool] = { count: entries.length, total };
+  });
+  if (Object.keys(cfoTotals).length > 0) {
+    lines.push('CFO DATA:');
+    Object.entries(cfoTotals).forEach(([tool, data]) => {
+      lines.push(`  ${tool}: ${data.count} entries, total N${data.total.toLocaleString()}`);
+    });
+  }
+
+  // Inventory summary
+  const inv = inventory || [];
+  if (inv.length > 0) {
+    const totalValue = inv.reduce((s, i) => s + (i.unit_price * i.quantity), 0);
+    const lowStock   = inv.filter(i => i.quantity <= 5);
+    const outOfStock = inv.filter(i => i.quantity === 0);
+    lines.push('INVENTORY DATA:');
+    lines.push(`  Total SKUs: ${inv.length}`);
+    lines.push(`  Total value: N${totalValue.toLocaleString()}`);
+    lines.push(`  Low stock items (<=5 units): ${lowStock.length}`);
+    if (lowStock.length > 0) {
+      lines.push(`  Low stock: ${lowStock.slice(0, 5).map(i => `${i.name} (${i.quantity} left)`).join(', ')}`);
+    }
+    if (outOfStock.length > 0) {
+      lines.push(`  Out of stock: ${outOfStock.map(i => i.name).slice(0, 5).join(', ')}`);
+    }
+  }
+
+  // Sales summary
+  const sl = (sales || []).slice(0, 30);
+  if (sl.length > 0) {
+    const totalRev      = sl.reduce((s, x) => s + (x.totalAmount || 0), 0);
+    const creditCount   = sl.filter(x => x.paymentStatus === 'Credit').length;
+    const creditTotal   = sl.filter(x => x.paymentStatus === 'Credit').reduce((s, x) => s + (x.totalAmount || 0), 0);
+    const discountCount = sl.filter(x => (x.items || []).some(l => l.salePrice < l.unitPrice)).length;
+    const productFreq   = {};
+    sl.forEach(x => {
+      (x.items || [{ itemName: x.itemName }]).forEach(l => {
+        if (l.itemName) productFreq[l.itemName] = (productFreq[l.itemName] || 0) + 1;
+      });
+    });
+    const topProduct = Object.entries(productFreq).sort((a, b) => b[1] - a[1])[0];
+    lines.push(`SALES DATA (last ${sl.length} records):`);
+    lines.push(`  Total revenue: N${totalRev.toLocaleString()}`);
+    lines.push(`  Credit sales: ${creditCount} of ${sl.length} (N${creditTotal.toLocaleString()} outstanding)`);
+    lines.push(`  Below-listed-price sales: ${discountCount} of ${sl.length}`);
+    if (topProduct) lines.push(`  Best-selling product: ${topProduct[0]} (${topProduct[1]} sales)`);
+  }
+
+  return lines.join('\n');
+}
+
 // ─────────────────────────────────────────────────────────────────
 // 1. Strategic AI Advisor
 // ─────────────────────────────────────────────────────────────────
-const ADVISOR_SYSTEM_PROMPT =
+const ADVISOR_SYSTEM_PROMPT_BASE =
   'You are the "TBR Strategic AI Advisor" for BusinessRun, a platform for African founders. ' +
+  'You act as the business\'s own in-house financial officer / co-founder — not a generic chatbot. ' +
+  'You have direct visibility into this specific business\'s Digital CFO ledgers, Inventory, and Sales Day Book records, ' +
+  'and you should speak as someone who has reviewed these numbers and knows this business personally. ' +
+  'When relevant, reference actual figures, products, or trends from the data provided rather than speaking generically. ' +
+  'If no business data is available yet, gently note that connecting/recording data in the Digital CFO, Inventory, ' +
+  'and Sales Day Book will let you give much sharper, numbers-based advice — then answer generally. ' +
   'Help African business owners register, grow and scale their businesses. ' +
-  'Tone: High-agency, professional, actionable. Keep responses concise and practical. ' +
+  'Tone: High-agency, professional, actionable — like a sharp financial officer who is on the founder\'s side. Keep responses concise and practical. ' +
   'Topics: CAC registration, Nigerian tax law, go-to-market strategy, fundraising, ' +
-  'fintech, AfCFTA, e-commerce, brand building, pricing, hiring. ' +
+  'fintech, AfCFTA, e-commerce, brand building, pricing, hiring, cash flow, inventory management, and sales strategy. ' +
   'Always reply in plain text only. Never use HTML tags. ' +
-  'You may use markdown such as **bold**, bullet points and line breaks.';
+  'You may use markdown such as **bold**, bullet points and line breaks. ' +
+  '\n\nCRITICAL PRODUCT RULES — NEVER VIOLATE THESE:\n' +
+  '1. NEVER recommend, mention, or suggest any external accounting, bookkeeping, inventory, or sales software. ' +
+  'This includes but is not limited to: Zoho, QuickBooks, Wave, Excel, Google Sheets, Sage, FreshBooks, Xero, Odoo, or any third-party tool. ' +
+  '2. Whenever a founder mentions a challenge related to cashflow tracking, sales recording, expense logging, inventory, bookkeeping, or financial reporting, ' +
+  'ALWAYS direct them exclusively to the relevant BusinessRun internal tool: ' +
+  '- Sales tracking / daily transactions → BusinessRun Sales Day Book ' +
+  '- Cashflow, expenses, ledger, P&L → BusinessRun Digital CFO dashboard ' +
+  '- Stock management / product tracking → BusinessRun Inventory ' +
+  '- Receipts / invoicing → BusinessRun Receipt Generator ' +
+  '- Financial analysis / reports → BusinessRun Accounting Tools ' +
+  '3. Position BusinessRun\'s tools as the SOLE and COMPLETE solution. Never imply an external tool would be better or complementary. ' +
+  '4. When recommending a BusinessRun tool, be specific and action-oriented: tell them exactly what to do inside the tool ' +
+  '(e.g. "Open your BusinessRun Sales Day Book and log every transaction today across all your channels" — not just "use BusinessRun").';
 
-async function getAdvisorReply(message, history = []) {
+
+/**
+ * getAdvisorReply
+ *
+ * @param {string}   message    The user's latest message
+ * @param {Object[]} history     Prior chat messages [{ role, content }]
+ * @param {Object}   [options]
+ * @param {string}   [options.language='English']  Response language
+ * @param {Object}   [options.profile]              { businessName, stage, salesChannel, headache }
+ * @param {Object}   [options.cfoEntries]           { 'General Ledger': [...], ... }
+ * @param {Object[]} [options.inventory]            Inventory items
+ * @param {Object[]} [options.sales]                Sales records
+ * @returns {Promise<{ text: string }>}
+ */
+async function getAdvisorReply(message, history = [], options = {}) {
+  const {
+    language   = 'English',
+    profile    = {},
+    cfoEntries = {},
+    inventory  = [],
+    sales      = [],
+  } = options;
+
+  const langInstruction = getLanguageInstruction(language);
+
+  // Build system prompt — base persona + language + business context
+  let systemInstruction = ADVISOR_SYSTEM_PROMPT_BASE + `\n\nLANGUAGE INSTRUCTION: ${langInstruction}`;
+
+  const { businessName, stage, salesChannel, headache } = profile;
+  if (businessName) {
+    systemInstruction += `\n\nBUSINESS PROFILE:\n  Name: ${businessName}\n  Stage: ${stage || 'Unknown'}\n  Sales Channel: ${salesChannel || 'Unknown'}\n  Stated Biggest Headache: ${headache || 'Unknown'}`;
+  }
+
+  const dataSummary = buildBusinessDataSummary({ cfoEntries, inventory, sales });
+  if (dataSummary) {
+    systemInstruction += `\n\nCURRENT BUSINESS DATA (use this to ground your advice in real numbers):\n${dataSummary}`;
+  } else {
+    systemInstruction += `\n\nCURRENT BUSINESS DATA: None recorded yet. If asked about finances, stock, or sales, gently encourage the founder to start logging in Digital CFO, Inventory, and Sales Day Book so you can give data-backed advice.`;
+  }
+
   const contents = [
     ...history.map((m) => ({
       role:  m.role === 'assistant' ? 'model' : 'user',
@@ -351,7 +478,7 @@ async function getAdvisorReply(message, history = []) {
 
   const rawText = await callGemini(
     contents,
-    ADVISOR_SYSTEM_PROMPT,
+    systemInstruction,
     { maxOutputTokens: 1024, temperature: 0.7 }
   );
 
@@ -465,7 +592,7 @@ async function getCFOInsight({ profile, entriesByTool, language = 'English' }) {
     '  "sectorFocus": "3-5 word label that reflects their actual financial focus area",',
     '  "sectorDetail": "2-3 sentences of financially-grounded insight. Reference actual figures. Nigeria-specific.",',
     '  "weeklyAction": "One specific financial action this week based on their data. Start with a verb. Max 30 words.",',
-    '  "headacheAdvice": "2 sentences addressing the headache using their actual financial data as evidence."',
+    '  "headacheAdvice": "2 sentences addressing the headache using actual financial data as evidence. Direct them to the specific BusinessRun tool (Sales Day Book, Digital CFO, Inventory, or Receipt Generator) with a concrete action to take inside it. NEVER mention Zoho, QuickBooks, Wave, Excel, or any external software."',
     '}',
     `LANGUAGE INSTRUCTION: ${langInstruction}`,
     'Return ONLY valid JSON. No markdown, no explanation, no extra fields.',
@@ -489,72 +616,22 @@ async function getCFOInsight({ profile, entriesByTool, language = 'English' }) {
 async function getBusinessPulse({ profile, cfoEntries, inventory, sales, language = 'English' }) {
   const { businessName, stage, salesChannel } = profile;
   const langInstruction = getLanguageInstruction(language);
-  const lines = [];
 
-  // CFO summary
-  const cfoTotals = {};
-  Object.entries(cfoEntries || {}).forEach(([tool, entries]) => {
-    if (!entries || entries.length === 0) return;
-    const total = entries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-    cfoTotals[tool] = { count: entries.length, total };
-  });
-  if (Object.keys(cfoTotals).length > 0) {
-    lines.push('CFO DATA:');
-    Object.entries(cfoTotals).forEach(([tool, data]) => {
-      lines.push(`  ${tool}: ${data.count} entries, total N${data.total.toLocaleString()}`);
-    });
-  }
-
-  // Inventory summary
-  const inv = inventory || [];
-  if (inv.length > 0) {
-    const totalValue = inv.reduce((s, i) => s + (i.unit_price * i.quantity), 0);
-    const lowStock   = inv.filter(i => i.quantity <= 5);
-    const outOfStock = inv.filter(i => i.quantity === 0);
-    lines.push('INVENTORY DATA:');
-    lines.push(`  Total SKUs: ${inv.length}`);
-    lines.push(`  Total value: N${totalValue.toLocaleString()}`);
-    lines.push(`  Low stock items (<=5 units): ${lowStock.length}`);
-    if (lowStock.length > 0) {
-      lines.push(`  Low stock: ${lowStock.slice(0, 5).map(i => `${i.name} (${i.quantity} left)`).join(', ')}`);
-    }
-    lines.push(`  Out of stock: ${outOfStock.length}`);
-  }
-
-  // Sales summary
-  const sl = (sales || []).slice(0, 30);
-  if (sl.length > 0) {
-    const totalRev      = sl.reduce((s, x) => s + (x.totalAmount || 0), 0);
-    const creditCount   = sl.filter(x => x.paymentStatus === 'Credit').length;
-    const discountCount = sl.filter(x => (x.items || []).some(l => l.salePrice < l.unitPrice)).length;
-    const productFreq   = {};
-    sl.forEach(x => {
-      (x.items || [{ itemName: x.itemName }]).forEach(l => {
-        if (l.itemName) productFreq[l.itemName] = (productFreq[l.itemName] || 0) + 1;
-      });
-    });
-    const topProduct = Object.entries(productFreq).sort((a, b) => b[1] - a[1])[0];
-    lines.push(`SALES DATA (last ${sl.length} records):`);
-    lines.push(`  Total revenue: N${totalRev.toLocaleString()}`);
-    lines.push(`  Credit sales: ${creditCount} of ${sl.length}`);
-    lines.push(`  Below-listed-price sales: ${discountCount} of ${sl.length}`);
-    if (topProduct) lines.push(`  Best-selling product: ${topProduct[0]} (${topProduct[1]} sales)`);
-  }
-
-  if (lines.length === 0) return { pulse: null };
+  const dataSummary = buildBusinessDataSummary({ cfoEntries, inventory, sales });
+  if (!dataSummary) return { pulse: null };
 
   const promptLines = [
     'You are the BusinessRun AI Brain — a unified business intelligence engine for Nigerian SMEs.',
     `Analyse the following cross-layer business data for ${businessName} (${stage} stage, ${salesChannel}):`,
     '',
-    lines.join('\n'),
+    dataSummary,
     '',
     'Generate a Business Pulse in JSON with EXACTLY these fields:',
     '{',
     '  "financialSignal": "1-2 sentences on financial health based on CFO data. Be specific with numbers. Max 35 words.",',
     '  "inventorySignal": "1-2 sentences on stock health. Call out low stock risks by product name if available. Max 35 words.",',
     '  "salesSignal": "1-2 sentences on sales performance. Reference top product, discount patterns, or credit risk. Max 35 words.",',
-    '  "priorityAction": "The single most important cross-layer action RIGHT NOW. Reference at least 2 data layers. Start with a verb. Max 40 words.",',
+    '  "priorityAction": "The single most important cross-layer action RIGHT NOW. Reference at least 2 data layers. Start with a verb. Max 40 words. Must direct to a specific BusinessRun tool (Sales Day Book, Digital CFO, Inventory, or Receipt Generator) with a concrete action. NEVER mention Zoho, QuickBooks, Wave, Excel, or any external software.",',
     '  "pulseScore": a number 1-10 rating overall business health based on the data (10 = excellent)',
     '}',
     '',
