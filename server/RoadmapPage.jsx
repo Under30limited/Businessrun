@@ -25,9 +25,9 @@ import {
   CheckCircle, ArrowRight, Menu, X,
   Loader2, Home, Sparkles, RefreshCcw,
   LogOut, MessageSquare, Calculator, Package, Receipt,
-  Globe, Edit2, Activity,
+  Globe, Edit2, Activity, ChevronLeft,
   Plus, Trash2, AlertCircle,
-  BookOpen, TrendingDown,
+  BookOpen, TrendingDown, Send,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────
@@ -147,6 +147,12 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
     setMessages(next);
     setIsLoading(true);
     try {
+      // Note: business data (CFO entries, inventory, sales) is no longer
+      // sent from the client. The server fetches it directly from
+      // Firestore and injects it once as a labelled "BASE DATA" message
+      // at the start of the session — keeping every request small
+      // regardless of conversation length or how much data the
+      // business has recorded.
       const history = next.slice(1).slice(0, -1).map(m => ({ role: m.role, content: m.content }));
       const res  = await fetch('/api/advisor', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -156,9 +162,6 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
           history,
           language: language || 'English',
           profile,
-          cfoEntries,
-          inventory: inventoryItems,
-          sales,
         }),
       });
       let data;
@@ -567,7 +570,10 @@ export default function RoadmapPage() {
   // Putting useState after an early return violates this rule and
   // causes blank screens when the early return condition changes.
   const [activeView,     setActiveView]     = useState('home');
-  const [menuOpen,       setMenuOpen]       = useState(false);
+  const [menuOpen,       setMenuOpen]       = useState(false); // mobile drawer
+  const [sidebarOpen,    setSidebarOpen]    = useState(       // desktop sidebar
+    () => localStorage.getItem('br_sidebar_open') !== 'false'  // default: open
+  );
   const [loading,        setLoading]        = useState(true);
   const [loadMsg,        setLoadMsg]        = useState(`Analysing market signals for ${businessName}...`);
   const [genericInsight, setGenericInsight] = useState(null);
@@ -780,6 +786,14 @@ export default function RoadmapPage() {
     setMenuOpen(false);
   }
 
+  function toggleSidebar() {
+    setSidebarOpen(o => {
+      const next = !o;
+      localStorage.setItem('br_sidebar_open', String(next));
+      return next;
+    });
+  }
+
   function openView(viewId) {
     setActiveView(viewId);
     setMenuOpen(false);
@@ -874,74 +888,169 @@ export default function RoadmapPage() {
     );
   }
 
+  const badgeCount = {
+    cfo:       totalEntries,
+    inventory: inventoryItems.length,
+    sales:     sales.length,
+  };
+
   return (
-    <div className="min-h-screen bg-white text-zinc-900 flex flex-col">
+    <div className="min-h-screen bg-white text-zinc-900 flex">
       {langModal}
 
-      {/* ── Dashboard Navigation ─────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm">
-        <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-          <button onClick={handleLogout} className="flex items-center gap-2 group" title="Exit to home">
-            <span className="text-xs font-black uppercase tracking-widest text-amber-500 group-hover:text-amber-400 transition italic">BusinessRun</span>
-            <LogOut size={11} className="text-zinc-600 group-hover:text-amber-400 transition" />
-          </button>
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-            {NAV_ITEMS.find(n => n.id === activeView)?.label}
-          </span>
-          <button onClick={() => setMenuOpen(o => !o)}
-            className="w-9 h-9 flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl transition-all"
-            aria-label="Toggle menu">
-            {menuOpen ? <X size={16} className="text-zinc-900" /> : <Menu size={16} className="text-zinc-600" />}
+      {/* ── Mobile overlay when drawer open ─────────────────── */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* ── LEFT SIDEBAR ─────────────────────────────────────── */}
+      {/* Desktop: always rendered, width transitions open↔collapsed */}
+      {/* Mobile: fixed slide-over drawer, toggled by hamburger      */}
+      <aside className={`
+        fixed top-0 left-0 h-full z-50 flex flex-col bg-white border-r border-zinc-200 shadow-lg
+        transition-all duration-300 ease-in-out
+        ${sidebarOpen ? 'w-60' : 'w-[72px]'}
+        ${menuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+
+        {/* Sidebar header — logo + collapse toggle */}
+        <div className={`flex items-center border-b border-zinc-100 flex-shrink-0 ${sidebarOpen ? 'px-5 py-5 justify-between' : 'px-4 py-5 justify-center'}`}>
+          {sidebarOpen && (
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center font-black text-black text-xs">B</div>
+                <span className="text-sm font-black uppercase tracking-tighter italic text-zinc-900">BusinessRun</span>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mt-0.5 ml-9">
+                {businessName}
+              </p>
+            </div>
+          )}
+          {!sidebarOpen && (
+            <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center font-black text-black text-xs">B</div>
+          )}
+          {/* Collapse button — desktop only */}
+          <button
+            onClick={toggleSidebar}
+            className="hidden lg:flex w-7 h-7 items-center justify-center rounded-lg hover:bg-zinc-100 transition text-zinc-400 hover:text-zinc-700 flex-shrink-0"
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            <ChevronLeft size={15} className={`transition-transform duration-300 ${sidebarOpen ? '' : 'rotate-180'}`} />
           </button>
         </div>
 
-        {/* Slide-down nav panel */}
-        {menuOpen && (
-          <div className="border-t border-zinc-200 bg-white">
-            <div className="max-w-5xl mx-auto px-5 py-4 space-y-1">
-              {NAV_ITEMS.map(item => (
-                <button key={item.id} onClick={() => openView(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                    activeView === item.id
-                      ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
-                  }`}>
-                  {item.icon}
-                  {item.label}
-                  {item.id === 'cfo' && totalEntries > 0 && (
-                    <span className="ml-1 w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
-                      {totalEntries > 99 ? '99+' : totalEntries}
-                    </span>
-                  )}
-                  {item.id === 'inventory' && inventoryItems.length > 0 && (
-                    <span className="ml-1 w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
-                      {inventoryItems.length > 99 ? '99+' : inventoryItems.length}
-                    </span>
-                  )}
-                  {item.id === 'sales' && sales.length > 0 && (
-                    <span className="ml-1 w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center">
-                      {sales.length > 99 ? '99+' : sales.length}
-                    </span>
-                  )}
-                  {activeView === item.id && <span className="ml-auto w-1.5 h-1.5 bg-amber-500 rounded-full" />}
-                </button>
-              ))}
-              <div className="pt-2 border-t border-zinc-200 mt-2">
-                <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-red-500 hover:bg-red-50 transition-all">
-                  <LogOut size={16} /> Exit to Home
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-3">
+          {NAV_ITEMS.map(item => {
+            const count = badgeCount[item.id] || 0;
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => openView(item.id)}
+                title={!sidebarOpen ? item.label : undefined}
+                className={`w-full flex items-center rounded-xl transition-all text-left
+                  ${sidebarOpen ? 'gap-3 px-4 py-3' : 'justify-center px-0 py-3'}
+                  ${isActive
+                    ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
+                  }
+                `}
+              >
+                <span className={`flex-shrink-0 ${isActive ? 'text-amber-500' : ''}`}>{item.icon}</span>
+                {sidebarOpen && (
+                  <>
+                    <span className="text-[11px] font-black uppercase tracking-widest flex-1">{item.label}</span>
+                    {count > 0 && (
+                      <span className="w-5 h-5 bg-amber-500 text-black text-[9px] font-black rounded-full flex items-center justify-center flex-shrink-0">
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    )}
+                    {isActive && count === 0 && (
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />
+                    )}
+                  </>
+                )}
+                {/* Badge in collapsed mode */}
+                {!sidebarOpen && count > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 text-black text-[8px] font-black rounded-full flex items-center justify-center">
+                    {count > 9 ? '9+' : count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* ── View: Business OS ─────────────────────────────────── */}
-      {activeView === 'home' && (
-        <div className="flex-1 pb-20">
-          <div className="border-b border-zinc-200 bg-zinc-50">
-            <div className="max-w-5xl mx-auto px-5 py-8">
+        {/* Language selector + logout at bottom */}
+        <div className="flex-shrink-0 border-t border-zinc-100 p-3 space-y-1">
+          <button
+            onClick={() => setShowLangModal(true)}
+            title={!sidebarOpen ? 'Language' : undefined}
+            className={`w-full flex items-center rounded-xl text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition border border-transparent
+              ${sidebarOpen ? 'gap-3 px-4 py-3' : 'justify-center px-0 py-3'}
+            `}
+          >
+            <Globe size={16} className="flex-shrink-0" />
+            {sidebarOpen && <span className="text-[11px] font-black uppercase tracking-widest">{language || 'Language'}</span>}
+          </button>
+          <button
+            onClick={handleLogout}
+            title={!sidebarOpen ? 'Exit' : undefined}
+            className={`w-full flex items-center rounded-xl text-zinc-500 hover:text-red-500 hover:bg-red-50 transition border border-transparent
+              ${sidebarOpen ? 'gap-3 px-4 py-3' : 'justify-center px-0 py-3'}
+            `}
+          >
+            <LogOut size={16} className="flex-shrink-0" />
+            {sidebarOpen && <span className="text-[11px] font-black uppercase tracking-widest">Exit to Home</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT AREA — shifts right to account for sidebar ─ */}
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out
+        ${sidebarOpen ? 'lg:ml-60' : 'lg:ml-[72px]'}
+      `}>
+
+        {/* Top bar — mobile hamburger + current view title */}
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm flex items-center justify-between px-5 py-4 lg:px-8">
+          {/* Mobile: hamburger */}
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="lg:hidden w-9 h-9 flex items-center justify-center bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl transition"
+            aria-label="Open menu"
+          >
+            <Menu size={16} className="text-zinc-600" />
+          </button>
+
+          {/* Current view label */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-900">
+              {NAV_ITEMS.find(n => n.id === activeView)?.label}
+            </span>
+          </div>
+
+          {/* User info pill */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-xl">
+            <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-black font-black text-[10px]">
+              {(fullName || businessName || 'U')[0].toUpperCase()}
+            </div>
+            {sidebarOpen && (
+              <div className="hidden lg:block">
+                <p className="text-[10px] font-black text-zinc-900 leading-none">{fullName || businessName}</p>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* ── View: Business OS ───────────────────────────────── */}
+        {activeView === 'home' && (
+          <div className="flex-1 pb-20">
+            <div className="border-b border-zinc-200 bg-zinc-50">
+              <div className="max-w-5xl mx-auto px-5 py-8">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-green-500">Business OS Initialised</span>
@@ -1152,10 +1261,10 @@ export default function RoadmapPage() {
         </div>
       )}
 
-      {/* ── View: AI Advisor ──────────────────────────────────── */}
-      {activeView === 'advisor' && (
-        <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-5 py-8" style={{ minHeight: 0 }}>
-          <div className="flex-1 bg-white border border-zinc-200 rounded-[2rem] shadow-sm p-6 sm:p-8 flex flex-col" style={{ minHeight: '600px' }}>
+        {/* ── View: AI Advisor ──────────────────────────────── */}
+        {activeView === 'advisor' && (
+          <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-5 py-8" style={{ minHeight: 0 }}>
+            <div className="flex-1 bg-white border border-zinc-200 rounded-[2rem] shadow-sm p-6 sm:p-8 flex flex-col" style={{ minHeight: '600px' }}>
             <AdvisorChat
               initialPrompt={advisorPrompt}
               onPromptConsumed={() => setAdvisorPrompt('')}
@@ -1165,11 +1274,11 @@ export default function RoadmapPage() {
               inventoryItems={inventoryItems}
               sales={sales}
             />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── View: Digital CFO ─────────────────────────────────── */}
+        {/* ── View: Digital CFO ─────────────────────────────────── */}
       {activeView === 'cfo' && (
         <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
           <DigitalCFO
@@ -1186,12 +1295,12 @@ export default function RoadmapPage() {
               }, 500);
             }}
           />
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* ── View: Inventory ───────────────────────────────────── */}
-      {activeView === 'inventory' && (
-        <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+          {/* ── View: Inventory ────────────────────────────── */}
+        {activeView === 'inventory' && (
+          <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
           <InventoryDashboard
             items={inventoryItems}
             setItems={setInventoryItems}
@@ -1199,19 +1308,20 @@ export default function RoadmapPage() {
         </div>
       )}
 
-      {/* ── View: Sales Day Book ──────────────────────────────── */}
-      {activeView === 'sales' && (
-        <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
-          <SalesDayBook
-            sales={sales}
-            setSales={setSales}
-            inventoryItems={inventoryItems}
-            setInventoryItems={setInventoryItems}
-            businessName={businessName}
-          />
-        </div>
-      )}
+        {/* ── View: Sales Day Book ────────────────────────── */}
+        {activeView === 'sales' && (
+          <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+            <SalesDayBook
+              sales={sales}
+              setSales={setSales}
+              inventoryItems={inventoryItems}
+              setInventoryItems={setInventoryItems}
+              businessName={businessName}
+            />
+          </div>
+        )}
 
-    </div>
+      </div>{/* end main content */}
+    </div>{/* end outer flex */}
   );
 }
