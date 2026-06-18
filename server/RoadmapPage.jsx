@@ -1321,7 +1321,7 @@ export default function RoadmapPage() {
           </div>
         )}
 
-      </div>{/* end main content */}
-    </div>{/* end outer flex */}
+      </div>
+    </div>
   );
 }
