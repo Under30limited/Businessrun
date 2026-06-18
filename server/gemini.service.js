@@ -371,6 +371,33 @@ function buildBusinessDataSummary({ cfoEntries, inventory, sales }) {
     if (outOfStock.length > 0) {
       lines.push(`  Out of stock: ${outOfStock.map(i => i.name).slice(0, 5).join(', ')}`);
     }
+    // Full per-item listing — name, price, quantity, category, line value.
+    // This is the exact data needed for accurate CFO-style reasoning
+    // (e.g. "which product holds the most stock value", "what's the
+    // unit price of X"). At very large catalogues (hundreds/thousands
+    // of SKUs) we can't list everything without blowing up the prompt,
+    // so item selection is prioritised rather than arbitrary:
+    //   1. Every low-stock / out-of-stock item is ALWAYS included —
+    //      these are the most actionable and time-sensitive.
+    //   2. Remaining slots filled by highest stock-value items first —
+    //      these matter most for cashflow/CFO-style questions.
+    // Capped at 80 detailed lines total to keep the prompt bounded.
+    const DETAIL_CAP = 80;
+    const withValue = inv.map(i => ({ ...i, _lineValue: (i.unit_price || 0) * (i.quantity || 0) }));
+    const priority   = withValue.filter(i => i.quantity <= 5);                 // low/out of stock — always shown
+    const remaining  = withValue
+      .filter(i => i.quantity > 5)
+      .sort((a, b) => b._lineValue - a._lineValue);                            // highest value first
+    const detailed = [...priority, ...remaining].slice(0, DETAIL_CAP);
+    const omittedCount = inv.length - detailed.length;
+
+    lines.push(`  Full item list (showing ${detailed.length} of ${inv.length} items — prioritised by low-stock status, then by stock value; name | unit price | quantity | category | stock value):`);
+    detailed.forEach(i => {
+      lines.push(`    - ${i.name} | N${Number(i.unit_price || 0).toLocaleString()} | ${i.quantity || 0} units | ${i.category || 'Uncategorised'} | N${i._lineValue.toLocaleString()}`);
+    });
+    if (omittedCount > 0) {
+      lines.push(`    ...and ${omittedCount} more lower-priority, well-stocked items not listed individually (use the totals above for these; they are not low-stock or top-value items).`);
+    }
   }
 
   // Sales summary
@@ -444,16 +471,22 @@ const ADVISOR_SYSTEM_PROMPT_BASE =
  */
 async function getAdvisorReply(message, history = [], options = {}) {
   const {
-    language   = 'English',
-    profile    = {},
-    cfoEntries = {},
-    inventory  = [],
-    sales      = [],
+    language       = 'English',
+    profile        = {},
+    cfoEntries     = {},
+    inventory      = [],
+    sales          = [],
+    injectBaseData = true,
   } = options;
 
   const langInstruction = getLanguageInstruction(language);
 
-  // Build system prompt — base persona + language + business context
+  // Build system prompt — base persona + language + business profile.
+  // The actual numbers (inventory, sales, CFO) are NOT duplicated into
+  // every system prompt — they live in ONE "BASE DATA" message injected
+  // into the conversation history below, so the model treats it as a
+  // fixed reference point for the whole session rather than restating
+  // potentially-stale numbers on every single turn.
   let systemInstruction = ADVISOR_SYSTEM_PROMPT_BASE + `\n\nLANGUAGE INSTRUCTION: ${langInstruction}`;
 
   const { businessName, stage, salesChannel, headache } = profile;
@@ -461,20 +494,38 @@ async function getAdvisorReply(message, history = [], options = {}) {
     systemInstruction += `\n\nBUSINESS PROFILE:\n  Name: ${businessName}\n  Stage: ${stage || 'Unknown'}\n  Sales Channel: ${salesChannel || 'Unknown'}\n  Stated Biggest Headache: ${headache || 'Unknown'}`;
   }
 
+  systemInstruction +=
+    `\n\nDATA GROUNDING RULE — STRICT: ` +
+    `Early in this conversation you were given a message labelled "BASE BUSINESS DATA" containing this business's actual inventory (with prices and quantities), CFO ledger entries, and sales records. ` +
+    `That message is your single source of truth for this entire session. ` +
+    `Whenever you reference figures, stock levels, prices, revenue, or any business number, it MUST come from that BASE BUSINESS DATA message — never invent, estimate, or guess a number that wasn't given to you. ` +
+    `If something isn't in the BASE BUSINESS DATA (e.g. a product that doesn't exist), say so plainly rather than making up a figure. ` +
+    `If no BASE BUSINESS DATA message exists yet in this conversation, it means the business has no recorded data — encourage them to log it in Digital CFO, Inventory, or Sales Day Book before giving numbers-based advice.`;
+
   const dataSummary = buildBusinessDataSummary({ cfoEntries, inventory, sales });
-  if (dataSummary) {
-    systemInstruction += `\n\nCURRENT BUSINESS DATA (use this to ground your advice in real numbers):\n${dataSummary}`;
-  } else {
-    systemInstruction += `\n\nCURRENT BUSINESS DATA: None recorded yet. If asked about finances, stock, or sales, gently encourage the founder to start logging in Digital CFO, Inventory, and Sales Day Book so you can give data-backed advice.`;
+
+  // Build the conversation contents. On a brand-new session (no prior
+  // history), prepend a single labelled BASE BUSINESS DATA message so
+  // the model has the founder's real numbers anchored at the start of
+  // the conversation — sent ONCE, never repeated on later turns.
+  const baseDataMessage = dataSummary
+    ? `BASE BUSINESS DATA (reference this for the rest of our conversation — do not ask me to repeat it):\n\n${dataSummary}`
+    : `BASE BUSINESS DATA: No CFO, inventory, or sales data has been recorded yet for this business.`;
+
+  const contents = [];
+
+  if (injectBaseData) {
+    contents.push({ role: 'user',  parts: [{ text: baseDataMessage }] });
+    contents.push({ role: 'model', parts: [{ text: 'Understood — I have your business data and will use it as the basis for all advice in this conversation.' }] });
   }
 
-  const contents = [
+  contents.push(
     ...history.map((m) => ({
       role:  m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     })),
     { role: 'user', parts: [{ text: message }] },
-  ];
+  );
 
   const rawText = await callGemini(
     contents,
