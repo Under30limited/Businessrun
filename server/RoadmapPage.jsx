@@ -117,8 +117,91 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
   const chatBoxRef     = useRef(null);
   const chatInteracted = useRef(false);
 
+  // ── Real-time delta tracking ───────────────────────────────────
+  // We snapshot the inventory & sales counts at session start (BASE DATA
+  // injection) and track any changes. When something changes mid-session
+  // we send a compact DATA UPDATE message with the next user turn — not
+  // the full arrays, just what changed — so the model's context stays
+  // current without blowing up the token count.
+  const baseSnapshotRef = useRef(null); // { invCount, salesCount, invMap }
+
+  // Build a compact snapshot of current inventory for delta comparison
+  function buildInvMap(items) {
+    const map = {};
+    (items || []).forEach(i => { map[i.id] = { name: i.name, qty: i.quantity, price: i.unit_price }; });
+    return map;
+  }
+
+  // Detect what changed since BASE DATA was injected and build a short
+  // delta string (a few hundred bytes max, not the full arrays).
+  function buildDeltaMessage() {
+    const snap = baseSnapshotRef.current;
+    if (!snap) return null;
+
+    const lines = [];
+
+    // ── Inventory changes ──────────────────────────────────────
+    const currentMap = buildInvMap(inventoryItems);
+    const changedItems = [];
+    Object.entries(currentMap).forEach(([id, curr]) => {
+      const prev = snap.invMap[id];
+      if (!prev) {
+        // New item added since session started
+        changedItems.push(`${curr.name}: NEW item added (${curr.qty} units @ N${Number(curr.price).toLocaleString()})`);
+      } else if (prev.qty !== curr.qty) {
+        // Quantity changed (sale recorded or stock edited)
+        const diff = curr.qty - prev.qty;
+        changedItems.push(`${curr.name}: ${prev.qty} → ${curr.qty} units (${diff > 0 ? '+' : ''}${diff})`);
+      } else if (prev.price !== curr.price) {
+        // Price changed
+        changedItems.push(`${curr.name}: price updated N${Number(prev.price).toLocaleString()} → N${Number(curr.price).toLocaleString()}`);
+      }
+    });
+    // Items removed since session
+    Object.entries(snap.invMap).forEach(([id, prev]) => {
+      if (!currentMap[id]) changedItems.push(`${prev.name}: REMOVED from inventory`);
+    });
+
+    if (changedItems.length > 0) {
+      lines.push('INVENTORY UPDATE (changes since your last data refresh):');
+      changedItems.slice(0, 20).forEach(l => lines.push('  - ' + l));
+      if (changedItems.length > 20) lines.push(`  ...and ${changedItems.length - 20} more changes`);
+    }
+
+    // ── Sales changes ──────────────────────────────────────────
+    const currentSalesCount = (sales || []).length;
+    if (currentSalesCount > snap.salesCount) {
+      const newSales = (sales || []).slice(0, currentSalesCount - snap.salesCount);
+      const newRevenue = newSales.reduce((s, x) => s + (x.totalAmount || 0), 0);
+      lines.push(`SALES UPDATE: ${currentSalesCount - snap.salesCount} new sale(s) recorded since last data refresh.`);
+      lines.push(`  New revenue from these sales: N${newRevenue.toLocaleString()}`);
+      if (newSales.length <= 5) {
+        newSales.forEach(s => {
+          const items = (s.items || [{ itemName: s.itemName }]).map(l => l.itemName).join(', ');
+          lines.push(`  - ${items} | N${Number(s.totalAmount || 0).toLocaleString()} | ${s.paymentStatus || 'Paid'}`);
+        });
+      }
+    }
+
+    if (lines.length === 0) return null;
+
+    lines.unshift('[DATA UPDATE — supersedes those specific figures from the BASE BUSINESS DATA for this session]');
+    return lines.join('\n');
+  }
+
+  // Update the snapshot when props change (inventory/sales updated
+  // by dashboard actions) — only if we already have a base snapshot.
+  // We don't auto-send anything here; the delta is attached to the
+  // next user message so it costs zero extra API calls.
+  const prevInvRef   = useRef(null);
+  const prevSalesRef = useRef(null);
   useEffect(() => {
-    if (chatInteracted.current && chatBoxRef.current) {
+    prevInvRef.current   = inventoryItems;
+    prevSalesRef.current = sales;
+  }, [inventoryItems, sales]);
+
+  useEffect(() => {
+    if (chatBoxRef.current && chatInteracted.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
@@ -143,22 +226,50 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
     if (!msg || isLoading) return;
     setInput('');
     chatInteracted.current = true;
-    const next = [...messages, { role: 'user', content: msg }];
+
+    // ── First message — mark snapshot baseline ─────────────────
+    // The server will inject BASE DATA on this turn. Record what the
+    // inventory and sales look like right now so we can detect changes.
+    const isFirstMessage = messages.length <= 1; // only greeting so far
+    if (isFirstMessage) {
+      baseSnapshotRef.current = {
+        invCount:   (inventoryItems || []).length,
+        salesCount: (sales || []).length,
+        invMap:     buildInvMap(inventoryItems),
+      };
+    }
+
+    // ── Subsequent messages — attach delta if anything changed ──
+    let deltaNote = null;
+    if (!isFirstMessage && baseSnapshotRef.current) {
+      deltaNote = buildDeltaMessage();
+      // Update snapshot after computing delta so next message compares
+      // against current state, not the original baseline
+      if (deltaNote) {
+        baseSnapshotRef.current = {
+          invCount:   (inventoryItems || []).length,
+          salesCount: (sales || []).length,
+          invMap:     buildInvMap(inventoryItems),
+        };
+      }
+    }
+
+    // Prepend the delta to the user message so it arrives in the
+    // same turn without an extra API call
+    const fullMessage = deltaNote
+      ? `${deltaNote}\n\nUser message: ${msg}`
+      : msg;
+
+    const next = [...messages, { role: 'user', content: msg }]; // display original msg only
     setMessages(next);
     setIsLoading(true);
     try {
-      // Note: business data (CFO entries, inventory, sales) is no longer
-      // sent from the client. The server fetches it directly from
-      // Firestore and injects it once as a labelled "BASE DATA" message
-      // at the start of the session — keeping every request small
-      // regardless of conversation length or how much data the
-      // business has recorded.
       const history = next.slice(1).slice(0, -1).map(m => ({ role: m.role, content: m.content }));
       const res  = await fetch('/api/advisor', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          message: msg,
+          message: fullMessage,   // includes delta if applicable
           history,
           language: language || 'English',
           profile,
