@@ -738,13 +738,16 @@ export default function RoadmapPage() {
     }
   }, [isRestoring, isAuthenticated, hasRouteState, language]);
 
-  // ── Load generic roadmap insight ─────────────────────────────
-  // We depend on `language` so this only fires once language is resolved
-  // (either chosen by the user or already stored in localStorage).
-  // Without this guard, the insight would fire immediately with language=''
-  // and fall back to English before the user has made their selection.
+  // ── Load generic roadmap insight ───────────────────────────────────────────────
+  // Animation always starts on mount — it is purely cosmetic.
+  // The API call is deferred until language is resolved: either the user
+  // picks from the modal, or it is already in localStorage for returning users.
+  // A ref tracks the latest language value so the polling callback never
+  // closes over a stale empty string.
+  const languageRef = useRef(language);
+  useEffect(() => { languageRef.current = language; }, [language]);
+
   useEffect(() => {
-    if (!language) return; // wait until language is chosen or restored from storage
     const msgs = [
       `Analysing market signals for ${businessName}...`,
       `Mapping ${salesChannel} performance benchmarks...`,
@@ -752,13 +755,29 @@ export default function RoadmapPage() {
       'Initialising your Business OS...',
     ];
     let i = 0;
+    let pollTimer = null;
     const interval = setInterval(() => {
       i++;
-      if (i < msgs.length) setLoadMsg(msgs[i]);
-      else { clearInterval(interval); fetchGenericInsight(language); }
+      if (i < msgs.length) {
+        setLoadMsg(msgs[i]);
+      } else {
+        clearInterval(interval);
+        // If language already resolved, fire immediately.
+        // Otherwise poll every 300ms until the user picks one from the modal.
+        if (languageRef.current) {
+          fetchGenericInsight(languageRef.current);
+        } else {
+          pollTimer = setInterval(() => {
+            if (languageRef.current) {
+              clearInterval(pollTimer);
+              fetchGenericInsight(languageRef.current);
+            }
+          }, 300);
+        }
+      }
     }, 600);
-    return () => clearInterval(interval);
-  }, [language]); // re-runs when language is resolved or changed
+    return () => { clearInterval(interval); if (pollTimer) clearInterval(pollTimer); };
+  }, []); // intentionally empty — runs once on mount
 
   async function fetchGenericInsight(lang) {
     // Accept lang explicitly so the correct language is always sent,
