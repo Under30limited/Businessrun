@@ -758,7 +758,7 @@ export default function RoadmapPage() {
       else { clearInterval(interval); fetchGenericInsight(language); }
     }, 600);
     return () => clearInterval(interval);
-  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [language]); // re-runs when language is resolved or changed
 
   async function fetchGenericInsight(lang) {
     // Accept lang explicitly so the correct language is always sent,
