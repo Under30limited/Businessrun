@@ -739,11 +739,28 @@ export default function RoadmapPage() {
   }, [isRestoring, isAuthenticated, hasRouteState, language]);
 
   // ── Load generic roadmap insight ───────────────────────────────────────────────
-  // Animation always starts on mount — it is purely cosmetic.
-  // The API call is deferred until language is resolved: either the user
-  // picks from the modal, or it is already in localStorage for returning users.
-  // A ref tracks the latest language value so the polling callback never
-  // closes over a stale empty string.
+  // fetchGenericInsight is declared first so the useEffect closure below
+  // can reference it. async function declarations inside a component body
+  // are NOT hoisted — defining after the effect that calls it means the
+  // effect closes over undefined.
+  async function fetchGenericInsight(lang) {
+    const resolvedLang = lang || language || 'English';
+    try {
+      const res  = await fetch('/api/roadmap-insight', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache, language: resolvedLang }),
+      });
+      const data = await res.json();
+      setGenericInsight(data.insight || FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
+    } catch {
+      setGenericInsight(FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // A ref tracks the latest language value so the polling callback inside
+  // the effect never closes over a stale empty string.
   const languageRef = useRef(language);
   useEffect(() => { languageRef.current = language; }, [language]);
 
@@ -763,7 +780,7 @@ export default function RoadmapPage() {
       } else {
         clearInterval(interval);
         // If language already resolved, fire immediately.
-        // Otherwise poll every 300ms until the user picks one from the modal.
+        // Otherwise poll every 300ms until the user picks from the modal.
         if (languageRef.current) {
           fetchGenericInsight(languageRef.current);
         } else {
@@ -778,24 +795,6 @@ export default function RoadmapPage() {
     }, 600);
     return () => { clearInterval(interval); if (pollTimer) clearInterval(pollTimer); };
   }, []); // intentionally empty — runs once on mount
-
-  async function fetchGenericInsight(lang) {
-    // Accept lang explicitly so the correct language is always sent,
-    // regardless of when this function was defined or called.
-    const resolvedLang = lang || language || 'English';
-    try {
-      const res  = await fetch('/api/roadmap-insight', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache, language: resolvedLang }),
-      });
-      const data = await res.json();
-      setGenericInsight(data.insight || FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
-    } catch {
-      setGenericInsight(FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   // ── Load CFO entries, inventory, sales on mount (or auth restore) ─────
   // On a page refresh, user is null during the auth restoration phase.
