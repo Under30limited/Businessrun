@@ -610,15 +610,17 @@ async function saveInventoryItem(uid, item) {
     .collection('items')
     .doc(); // auto-generate id
 
+  const now = new Date();
   const doc = {
-    id:          ref.id,
-    name:        item.name,
-    category:    item.category    || '',
-    unit_price:  item.unit_price,
-    quantity:    item.quantity,
-    image_url:   item.image_url   || null,
-    createdAt:   FieldValue.serverTimestamp(),
-    updatedAt:   FieldValue.serverTimestamp(),
+    id:             ref.id,
+    name:           item.name,
+    category:       item.category    || '',
+    unit_price:     item.unit_price,
+    quantity:       item.quantity,
+    image_url:      item.image_url   || null,
+    createdAtISO:   now.toISOString(), // ISO timestamp — used by AI agent for days-in-stock and dead stock detection
+    createdAt:      FieldValue.serverTimestamp(),
+    updatedAt:      FieldValue.serverTimestamp(),
   };
 
   await ref.set(doc);
@@ -799,18 +801,21 @@ async function recordSale(uid, sale) {
     id:          ref.id,
 
     // ── Multi-item fields ─────────────────────────────────────
-    // items: full array of line items — each with itemName, quantity,
-    // unitPrice, salePrice, totalAmount. This is the authoritative
-    // source for both the history table and the receipt download.
-    items:       Array.isArray(sale.items) ? sale.items : [],
+    items:          Array.isArray(sale.items) ? sale.items : [],
 
-    // buyerName: optional — shown in history row and on receipt
-    buyerName:   sale.buyerName    || '',
-    businessName: sale.businessName || '',
+    // ── Buyer details ─────────────────────────────────────────
+    buyerName:      sale.buyerName      || '',
+    buyerContact:   sale.buyerContact   || '',   // phone / email / social handle
 
-    // ── Legacy flat fields — kept for backwards compat ────────
-    // Older records written before multi-item support only have these.
-    // New records have both items[] and these flat fields.
+    // ── Sale metadata ─────────────────────────────────────────
+    businessName:   sale.businessName   || '',
+    pointOfSale:    sale.pointOfSale    || 'Walk-in',  // channel where sale happened
+    paymentStatus:  sale.paymentStatus  || 'Paid',     // 'Paid' | 'Credit'
+    paymentMethod:  sale.paymentMethod  || 'Cash',     // 'Cash' | 'Bank Transfer' | 'POS' | etc.
+    deliveryDetails: sale.deliveryDetails || '',        // optional delivery info
+    recordedBy:     sale.recordedBy     || '',         // name of staff member who recorded the sale
+
+    // ── Legacy flat fields — backwards compat ────────────────
     inventoryItemId: sale.inventoryItemId || '',
     itemName:        sale.itemName        || '',
     unitPrice:       sale.unitPrice       || 0,
@@ -818,15 +823,208 @@ async function recordSale(uid, sale) {
     quantity:        sale.quantity        || 0,
 
     // Grand total across all line items
-    totalAmount:  sale.totalAmount,
+    totalAmount:    sale.totalAmount,
 
-    saleDate:    FieldValue.serverTimestamp(),
-    createdAt:   FieldValue.serverTimestamp(),
-    saleDateISO: now.toISOString(),
+    saleDate:       FieldValue.serverTimestamp(),
+    createdAt:      FieldValue.serverTimestamp(),
+    saleDateISO:    now.toISOString(),
   };
 
   await ref.set(doc);
   return { ...doc, id: ref.id, saleDate: now.toISOString(), createdAt: now.toISOString() };
+}
+
+/**
+ * updateSale
+ *
+ * Partially updates a sale document with the provided fields.
+ * Only whitelisted fields are written — items, totals, and timestamps
+ * that the controller has already validated are accepted as-is.
+ *
+ * @param {string} uid
+ * @param {string} saleId
+ * @param {Object} updates  Pre-validated fields from the controller
+ * @returns {Promise<void>}
+ */
+async function updateSale(uid, saleId, updates) {
+  const ref = db
+    .collection(COLLECTIONS.SALES_DAY_BOOK)
+    .doc(uid)
+    .collection('sales')
+    .doc(saleId);
+
+  await ref.update({
+    ...updates,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+/**
+ * deleteSale
+ *
+ * Sale Return — deletes the sale document and restores inventory stock
+ * for every line item in the sale.
+ *
+ * Flow:
+ *   1. Fetch the sale document to read its line items
+ *   2. Fetch current inventory quantities for each affected item
+ *   3. Delete the sale document
+ *   4. Restore stock for each line item (current qty + returned qty)
+ *   5. Return stockUpdates so the frontend can update inventory state
+ *
+ * Handles both the current multi-item `items[]` schema and legacy
+ * flat-structure docs so older records can also be returned.
+ *
+ * @param {string} uid
+ * @param {string} saleId
+ * @returns {Promise<Array<{ id: string, newQuantity: number }>>}
+ */
+async function deleteSale(uid, saleId) {
+  const salesRef = db
+    .collection(COLLECTIONS.SALES_DAY_BOOK)
+    .doc(uid)
+    .collection('sales')
+    .doc(saleId);
+
+  const saleSnap = await salesRef.get();
+  if (!saleSnap.exists) {
+    const err = new Error('Sale not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const sale = saleSnap.data();
+
+  // ── Build a map of { inventoryItemId → returnedQuantity } ───────
+  const returnMap = {}; // { [itemId]: qty }
+
+  if (Array.isArray(sale.items) && sale.items.length > 0) {
+    // Current multi-item schema
+    for (const line of sale.items) {
+      if (!line.inventoryItemId) continue;
+      returnMap[line.inventoryItemId] =
+        (returnMap[line.inventoryItemId] || 0) + (line.quantity || 0);
+    }
+  } else if (sale.inventoryItemId) {
+    // Legacy flat-structure doc
+    returnMap[sale.inventoryItemId] = sale.quantity || 0;
+  }
+
+  const itemIds = Object.keys(returnMap);
+
+  // ── Delete the sale document ─────────────────────────────────────
+  await salesRef.delete();
+
+  if (itemIds.length === 0) return [];
+
+  // ── Fetch current inventory quantities ───────────────────────────
+  const inventoryRef = db
+    .collection('inventory')
+    .doc(uid)
+    .collection('items');
+
+  const snapshots = await Promise.all(
+    itemIds.map(id => inventoryRef.doc(id).get())
+  );
+
+  // ── Restore stock and collect results ────────────────────────────
+  const stockUpdates = [];
+
+  await Promise.all(
+    snapshots.map(async snap => {
+      if (!snap.exists) return; // item was deleted from inventory — skip
+      const currentQty  = snap.data().quantity || 0;
+      const returnedQty = returnMap[snap.id]   || 0;
+      const newQuantity = currentQty + returnedQty;
+
+      await inventoryRef.doc(snap.id).update({
+        quantity:  newQuantity,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      stockUpdates.push({ id: snap.id, newQuantity });
+    })
+  );
+
+  return stockUpdates;
+}
+
+/**
+ * getItemSaleHistory
+ *
+ * Returns every sale transaction that contains a specific inventory item,
+ * ordered newest first.
+ *
+ * Strategy: query the user's salesDayBook sub-collection for docs where
+ * the `items` array contains an entry with the matching inventoryItemId.
+ * Also handles legacy flat-structure docs (inventoryItemId at root level)
+ * so older sales records are still surfaced.
+ *
+ * Each returned entry has the fields the HistoryModal expects:
+ *   saleId, quantity, salePrice, lineTotal,
+ *   buyerName, buyerContact, pointOfSale, paymentStatus, saleDate
+ *
+ * @param {string} uid
+ * @param {string} itemId
+ * @returns {Promise<Object[]>}
+ */
+async function getItemSaleHistory(uid, itemId) {
+  const salesRef = db
+    .collection(COLLECTIONS.SALES_DAY_BOOK)
+    .doc(uid)
+    .collection('sales')
+    .orderBy('saleDate', 'desc');
+
+  const snap = await salesRef.get();
+  const results = [];
+
+  snap.docs.forEach(doc => {
+    const sale = doc.data();
+    const saleDate =
+      sale.saleDate?.toDate?.()?.toISOString() ||
+      sale.saleDateISO ||
+      sale.saleDate ||
+      null;
+
+    // ── Multi-item sales (current schema) ────────────────────
+    if (Array.isArray(sale.items) && sale.items.length > 0) {
+      sale.items.forEach(line => {
+        if (line.inventoryItemId === itemId) {
+          results.push({
+            saleId:        doc.id,
+            quantity:      line.quantity      || 0,
+            salePrice:     line.salePrice     || line.unitPrice || 0,
+            lineTotal:     line.lineTotal     || (line.quantity * (line.salePrice || line.unitPrice || 0)),
+            buyerName:     sale.buyerName     || '',
+            buyerContact:  sale.buyerContact  || '',
+            pointOfSale:   sale.pointOfSale   || 'Walk-in',
+            paymentStatus: sale.paymentStatus || 'Paid',
+            paymentMethod: sale.paymentMethod || 'Cash',
+            saleDate,
+          });
+        }
+      });
+      return; // skip legacy check for this doc
+    }
+
+    // ── Legacy flat-structure docs ────────────────────────────
+    if (sale.inventoryItemId === itemId) {
+      results.push({
+        saleId:        doc.id,
+        quantity:      sale.quantity      || 0,
+        salePrice:     sale.salePrice     || sale.unitPrice || 0,
+        lineTotal:     sale.totalAmount   || (sale.quantity * (sale.salePrice || 0)),
+        buyerName:     sale.buyerName     || '',
+        buyerContact:  sale.buyerContact  || '',
+        pointOfSale:   sale.pointOfSale   || 'Walk-in',
+        paymentStatus: sale.paymentStatus || 'Paid',
+        paymentMethod: sale.paymentMethod || 'Cash',
+        saleDate,
+      });
+    }
+  });
+
+  return results;
 }
 
 module.exports = {
@@ -871,4 +1069,7 @@ module.exports = {
   // Sales Day Book
   getSales,
   recordSale,
+  updateSale,
+  deleteSale,
+  getItemSaleHistory,
 };
