@@ -6,6 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Theme color for mobile browser chrome (Android) -->
     <meta name="theme-color" content="#ffffff" />
+
+    <!--
+      Cache control meta tags — belt-and-suspenders alongside the server's
+      Cache-Control headers and the service worker. These instruct the
+      browser not to cache this HTML file. Static JS/CSS chunks are safe
+      to cache because CRA gives them content-hashed filenames; only
+      index.html must always stay fresh so it can point to the latest
+      hashed assets.
+    -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma"        content="no-cache" />
+    <meta http-equiv="Expires"       content="0" />
+
     <title>BusinessRun | The Pulse of African Enterprise</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -145,5 +158,56 @@
   </head>
   <body class="text-slate-900">
     <div id="root"></div>
+
+    <!--
+      Service Worker registration.
+      The SW is the definitive cache-busting layer — it intercepts every
+      fetch and enforces the correct caching strategy regardless of what
+      the browser or any intermediate proxy decides to do with headers.
+
+      Registered at the bottom of <body> so it does not block rendering.
+      See public/service-worker.js for the caching strategy itself.
+    -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then(function (reg) {
+              // Check for a new service worker immediately on page load
+              // (instead of waiting for the next navigation).
+              reg.update();
+
+              // When a new SW is waiting to activate, reload all tabs so
+              // users get the fresh build the moment it is deployed.
+              reg.addEventListener('updatefound', function () {
+                var newWorker = reg.installing;
+                newWorker.addEventListener('statechange', function () {
+                  if (
+                    newWorker.state === 'activated' &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    // New version is live — reload to apply it.
+                    window.location.reload();
+                  }
+                });
+              });
+            })
+            .catch(function (err) {
+              console.warn('Service worker registration failed:', err);
+            });
+
+          // If the SW controlling this page changed (i.e. a new SW just
+          // activated in another tab), reload this tab too.
+          var refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!refreshing) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
+        });
+      }
+    </script>
   </body>
 </html>
