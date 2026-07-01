@@ -31,12 +31,14 @@ const BRAND     = '#C5A028';
 const LOW_STOCK = 5;
 
 const emptyForm = () => ({
-  name:         '',
-  category:     '',
-  unit_price:   '',
-  quantity:     '',
-  imageFile:    null,
-  imagePreview: null,
+  name:          '',
+  category:      '',
+  unit_price:    '',
+  cost_price:    '',
+  quantity:      '',
+  serial_number: '',
+  imageFile:     null,
+  imagePreview:  null,
 });
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ function ViewModal({ item, onClose, onEdit }) {
           {/* Key stats */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-4">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Unit Price</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Selling Price</p>
               <p className="text-xl font-black text-zinc-900">₦{Number(item.unit_price).toLocaleString()}</p>
             </div>
             <div className={`rounded-xl px-4 py-4 border ${
@@ -118,6 +120,25 @@ function ViewModal({ item, onClose, onEdit }) {
               <p className={`text-xl font-black ${isLow ? 'text-red-500' : 'text-zinc-900'}`}>{item.quantity} units</p>
             </div>
           </div>
+
+          {/* Cost price + profit margin — only shown when cost_price is set */}
+          {item.cost_price > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1">Cost Price</p>
+                <p className="text-xl font-black text-zinc-900">₦{Number(item.cost_price).toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl px-4 py-4 border bg-green-50 border-green-100">
+                <p className="text-[9px] font-black uppercase tracking-widest text-green-600 mb-1">Profit / Unit</p>
+                <p className="text-xl font-black text-green-600">
+                  ₦{(item.unit_price - item.cost_price).toLocaleString()}
+                  <span className="text-xs ml-1 font-bold">
+                    ({item.unit_price > 0 ? Math.round(((item.unit_price - item.cost_price) / item.unit_price) * 100) : 0}%)
+                  </span>
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Inventory value + date added */}
           <div className="flex items-center justify-between px-4 py-3 rounded-xl border"
@@ -131,6 +152,12 @@ function ViewModal({ item, onClose, onEdit }) {
               <p className="text-xs font-black text-zinc-900">
                 {new Date(item.createdAtISO).toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
+            </div>
+          )}
+          {item.serial_number && (
+            <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-50 border border-zinc-100 rounded-xl">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Serial Number</p>
+              <p className="text-xs font-black text-zinc-900 font-mono">{item.serial_number}</p>
             </div>
           )}
 
@@ -167,27 +194,32 @@ function ViewModal({ item, onClose, onEdit }) {
 // ─────────────────────────────────────────────────────────────────
 function EditModal({ item, onClose, onSaved }) {
   const [form,    setForm]    = useState({
-    name:       item.name       || '',
-    category:   item.category   || '',
-    unit_price: String(item.unit_price ?? ''),
-    quantity:   String(item.quantity   ?? ''),
+    name:          item.name          || '',
+    category:      item.category      || '',
+    unit_price:    String(item.unit_price  ?? ''),
+    cost_price:    String(item.cost_price  ?? ''),
+    quantity:      String(item.quantity    ?? ''),
+    serial_number: item.serial_number  || '',
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error,    setError]    = useState('');
 
   async function handleSave() {
     if (!form.name.trim())                                               { setError('Name is required.'); return; }
-    if (!form.unit_price || isNaN(+form.unit_price) || +form.unit_price < 0) { setError('Enter a valid price.'); return; }
+    if (!form.unit_price || isNaN(+form.unit_price) || +form.unit_price < 0) { setError('Enter a valid selling price.'); return; }
+    if (form.cost_price && (isNaN(+form.cost_price) || +form.cost_price < 0)) { setError('Enter a valid cost price.'); return; }
     if (!form.quantity   || isNaN(+form.quantity)   || +form.quantity   < 0) { setError('Enter a valid quantity.'); return; }
 
     setError('');
     setIsSaving(true);
     try {
       const updates = {
-        name:       form.name.trim(),
-        category:   form.category.trim(),
-        unit_price: parseFloat(form.unit_price),
-        quantity:   parseInt(form.quantity, 10),
+        name:          form.name.trim(),
+        category:      form.category.trim(),
+        unit_price:    parseFloat(form.unit_price),
+        cost_price:    form.cost_price ? parseFloat(form.cost_price) : 0,
+        quantity:      parseInt(form.quantity, 10),
+        serial_number: form.serial_number.trim(),
       };
       const res = await fetch(`/api/inventory/${item.id}`, {
         method:      'PATCH',
@@ -235,14 +267,28 @@ function EditModal({ item, onClose, onSaved }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Price (₦) *</label>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Selling Price (₦) *</label>
               <input type="number" min="0" value={form.unit_price} onChange={e => setForm(p => ({ ...p, unit_price: e.target.value }))}
                 className={inputClass} placeholder="e.g. 25000" />
             </div>
             <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Cost Price (₦)</label>
+              <input type="number" min="0" value={form.cost_price} onChange={e => setForm(p => ({ ...p, cost_price: e.target.value }))}
+                className={inputClass} placeholder="e.g. 18000" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Quantity *</label>
               <input type="number" min="0" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
                 className={inputClass} placeholder="e.g. 50" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
+                Serial Number <span className="text-zinc-400 font-normal normal-case">optional</span>
+              </label>
+              <input type="text" value={form.serial_number} onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))}
+                className={inputClass} placeholder="e.g. SN-2024-001" />
             </div>
           </div>
 
@@ -528,17 +574,20 @@ export default function InventoryDashboard({ items, setItems }) {
   // ── Add item ──────────────────────────────────────────────────
   async function handleAddItem(e) {
     e.preventDefault();
-    if (!form.name.trim())                                              { setFormError('Item name is required.');   return; }
-    if (!form.unit_price || isNaN(+form.unit_price) || +form.unit_price < 0) { setFormError('Enter a valid price.');      return; }
+    if (!form.name.trim())                                                    { setFormError('Item name is required.');   return; }
+    if (!form.unit_price || isNaN(+form.unit_price) || +form.unit_price < 0) { setFormError('Enter a valid selling price.'); return; }
+    if (form.cost_price  && (isNaN(+form.cost_price) || +form.cost_price < 0)) { setFormError('Enter a valid cost price.'); return; }
     if (!form.quantity   || isNaN(+form.quantity)   || +form.quantity   < 0) { setFormError('Enter a valid quantity.'); return; }
 
     setFormError(''); setIsSaving(true);
     try {
       const fd = new FormData();
-      fd.append('name',       form.name.trim());
-      fd.append('category',   form.category.trim());
-      fd.append('unit_price', form.unit_price);
-      fd.append('quantity',   form.quantity);
+      fd.append('name',          form.name.trim());
+      fd.append('category',      form.category.trim());
+      fd.append('unit_price',    form.unit_price);
+      fd.append('cost_price',    form.cost_price || '0');
+      fd.append('quantity',      form.quantity);
+      fd.append('serial_number', form.serial_number.trim());
       if (form.imageFile) fd.append('image', form.imageFile);
 
       const res = await fetch('/api/inventory', { method: 'POST', credentials: 'include', body: fd });
@@ -751,7 +800,14 @@ export default function InventoryDashboard({ items, setItems }) {
 
                 {/* Price + Stock summary */}
                 <div className="flex items-center justify-between">
-                  <p className="text-lg font-black text-zinc-900">₦{Number(item.unit_price).toLocaleString()}</p>
+                  <div>
+                    <p className="text-lg font-black text-zinc-900">₦{Number(item.unit_price).toLocaleString()}</p>
+                    {item.cost_price > 0 && (
+                      <p className="text-[10px] text-green-600 font-bold mt-0.5">
+                        Cost ₦{Number(item.cost_price).toLocaleString()} · {item.unit_price > 0 ? Math.round(((item.unit_price - item.cost_price) / item.unit_price) * 100) : 0}% margin
+                      </p>
+                    )}
+                  </div>
                   <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border ${
                     item.quantity <= LOW_STOCK
                       ? 'border-red-200 text-red-500 bg-red-50'
@@ -819,14 +875,28 @@ export default function InventoryDashboard({ items, setItems }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Price (₦) *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Selling Price (₦) *</label>
                   <input type="number" placeholder="e.g. 25000" value={form.unit_price}
                     onChange={e => setForm(p => ({ ...p, unit_price: e.target.value }))} className={inputClass} />
                 </div>
                 <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Cost Price (₦)</label>
+                  <input type="number" placeholder="e.g. 18000" value={form.cost_price}
+                    onChange={e => setForm(p => ({ ...p, cost_price: e.target.value }))} className={inputClass} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Quantity *</label>
                   <input type="number" placeholder="e.g. 50" value={form.quantity}
                     onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
+                    Serial Number <span className="text-zinc-400 font-normal normal-case">optional</span>
+                  </label>
+                  <input type="text" placeholder="e.g. SN-2024-001" value={form.serial_number}
+                    onChange={e => setForm(p => ({ ...p, serial_number: e.target.value }))} className={inputClass} />
                 </div>
               </div>
 
