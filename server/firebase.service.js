@@ -614,10 +614,13 @@ async function saveInventoryItem(uid, item) {
   const doc = {
     id:             ref.id,
     name:           item.name,
-    category:       item.category    || '',
+    category:       item.category     || '',
     unit_price:     item.unit_price,
+    cost_price:     item.cost_price   || 0,
     quantity:       item.quantity,
-    image_url:      item.image_url   || null,
+    serial_number:  item.serial_number || '',
+    image_url:      item.image_url    || null,
+    image_ext:      item.image_ext    || null,
     createdAtISO:   now.toISOString(), // ISO timestamp — used by AI agent for days-in-stock and dead stock detection
     createdAt:      FieldValue.serverTimestamp(),
     updatedAt:      FieldValue.serverTimestamp(),
@@ -814,6 +817,7 @@ async function recordSale(uid, sale) {
     paymentMethod:  sale.paymentMethod  || 'Cash',     // 'Cash' | 'Bank Transfer' | 'POS' | etc.
     deliveryDetails: sale.deliveryDetails || '',        // optional delivery info
     recordedBy:     sale.recordedBy     || '',         // name of staff member who recorded the sale
+    description:    sale.description    || '',         // optional internal note — never shown on receipt
 
     // ── Legacy flat fields — backwards compat ────────────────
     inventoryItemId: sale.inventoryItemId || '',
@@ -862,24 +866,30 @@ async function updateSale(uid, saleId, updates) {
 /**
  * deleteSale
  *
- * Sale Return — deletes the sale document and restores inventory stock
- * for every line item in the sale.
+ * Sale Return — supports both full and partial returns.
  *
- * Flow:
- *   1. Fetch the sale document to read its line items
- *   2. Fetch current inventory quantities for each affected item
- *   3. Delete the sale document
- *   4. Restore stock for each line item (current qty + returned qty)
- *   5. Return stockUpdates so the frontend can update inventory state
+ * FULL RETURN (lineKeys omitted or covers every line):
+ *   Deletes the sale document entirely and restores stock for every
+ *   inventory-linked line item.
  *
- * Handles both the current multi-item `items[]` schema and legacy
- * flat-structure docs so older records can also be returned.
+ * PARTIAL RETURN (lineKeys provided, covers a subset of lines):
+ *   Removes only the selected lines from the sale's items array,
+ *   restores stock only for those lines, recalculates totalAmount,
+ *   and updates the sale document (does not delete it) — unless the
+ *   selected lines are ALL the lines, in which case it falls back to
+ *   a full delete.
+ *
+ * Custom (non-inventory) line items have no inventoryItemId, so they
+ * are simply dropped from the sale with no stock effect.
  *
  * @param {string} uid
  * @param {string} saleId
- * @returns {Promise<Array<{ id: string, newQuantity: number }>>}
+ * @param {string[]} [lineKeys]  Optional array of line `_key` values to
+ *                               return. If omitted, the entire sale is
+ *                               returned (legacy / full-return behaviour).
+ * @returns {Promise<{ stockUpdates: Array<{id:string,newQuantity:number}>, deleted: boolean, sale: Object|null }>}
  */
-async function deleteSale(uid, saleId) {
+async function deleteSale(uid, saleId, lineKeys) {
   const salesRef = db
     .collection(COLLECTIONS.SALES_DAY_BOOK)
     .doc(uid)
@@ -895,58 +905,111 @@ async function deleteSale(uid, saleId) {
 
   const sale = saleSnap.data();
 
-  // ── Build a map of { inventoryItemId → returnedQuantity } ───────
-  const returnMap = {}; // { [itemId]: qty }
+  // Normalise the sale into a uniform line-item array, tagging each
+  // line with a stable key so callers can reference specific lines.
+  // Legacy flat-structure docs are treated as a single synthetic line.
+  const allLines = (Array.isArray(sale.items) && sale.items.length > 0)
+    ? sale.items.map((l, i) => ({ ...l, _lineKey: l._lineKey || String(i) }))
+    : [{
+        inventoryItemId: sale.inventoryItemId || '',
+        itemName:        sale.itemName        || '',
+        unitPrice:       sale.unitPrice        || 0,
+        salePrice:       sale.salePrice        || 0,
+        quantity:        sale.quantity         || 0,
+        totalAmount:     sale.totalAmount      || 0,
+        _lineKey: '0',
+      }];
 
-  if (Array.isArray(sale.items) && sale.items.length > 0) {
-    // Current multi-item schema
-    for (const line of sale.items) {
-      if (!line.inventoryItemId) continue;
-      returnMap[line.inventoryItemId] =
-        (returnMap[line.inventoryItemId] || 0) + (line.quantity || 0);
-    }
-  } else if (sale.inventoryItemId) {
-    // Legacy flat-structure doc
-    returnMap[sale.inventoryItemId] = sale.quantity || 0;
+  const isPartial = Array.isArray(lineKeys) && lineKeys.length > 0
+    && lineKeys.length < allLines.length;
+
+  const linesToReturn = (Array.isArray(lineKeys) && lineKeys.length > 0)
+    ? allLines.filter(l => lineKeys.includes(l._lineKey))
+    : allLines; // no lineKeys provided → return everything (legacy behaviour)
+
+  if (linesToReturn.length === 0) {
+    const err = new Error('No matching line items found to return.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // ── Build a map of { inventoryItemId → returnedQuantity } ───────
+  const returnMap = {};
+  for (const line of linesToReturn) {
+    if (!line.inventoryItemId) continue; // custom / non-inventory line — no stock effect
+    returnMap[line.inventoryItemId] =
+      (returnMap[line.inventoryItemId] || 0) + (line.quantity || 0);
   }
 
   const itemIds = Object.keys(returnMap);
 
-  // ── Delete the sale document ─────────────────────────────────────
+  // ── Restore stock for returned lines ─────────────────────────────
+  const inventoryRef = db.collection('inventory').doc(uid).collection('items');
+  const stockUpdates  = [];
+
+  if (itemIds.length > 0) {
+    const snapshots = await Promise.all(itemIds.map(id => inventoryRef.doc(id).get()));
+    await Promise.all(
+      snapshots.map(async snap => {
+        if (!snap.exists) return; // item was deleted from inventory — skip
+        const currentQty  = snap.data().quantity || 0;
+        const returnedQty = returnMap[snap.id]   || 0;
+        const newQuantity = currentQty + returnedQty;
+        await inventoryRef.doc(snap.id).update({
+          quantity:  newQuantity,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        stockUpdates.push({ id: snap.id, newQuantity });
+      })
+    );
+  }
+
+  // ── Partial return: update the sale doc with remaining lines ─────
+  if (isPartial) {
+    const returnedKeys  = new Set(linesToReturn.map(l => l._lineKey));
+    const remainingLines = allLines.filter(l => !returnedKeys.has(l._lineKey));
+    const newTotal = parseFloat(
+      remainingLines.reduce((s, l) => s + (l.totalAmount || 0), 0).toFixed(2)
+    );
+    const newQuantity = remainingLines.reduce((s, l) => s + (l.quantity || 0), 0);
+
+    await salesRef.update({
+      items:        remainingLines,
+      totalAmount:  newTotal,
+      quantity:     newQuantity,
+      itemName:     remainingLines.length === 1 ? remainingLines[0].itemName : `${remainingLines.length} items`,
+      updatedAt:    FieldValue.serverTimestamp(),
+    });
+
+    // Serialise dates so the frontend never receives raw Firestore Timestamp objects.
+    // A Timestamp in the returned `sale` object would crash .slice(0,10) in the
+    // filteredSales render and cause a blank/black screen.
+    const serialiseSaleDate = (v) => {
+      if (!v) return null;
+      if (typeof v === 'string') return v;
+      if (typeof v.toDate === 'function') return v.toDate().toISOString();
+      return String(v);
+    };
+
+    const serialisedSale = {
+      ...sale,
+      id:          saleId,
+      items:       remainingLines,
+      totalAmount: newTotal,
+      quantity:    newQuantity,
+      itemName:    remainingLines.length === 1 ? remainingLines[0].itemName : `${remainingLines.length} items`,
+      saleDate:    serialiseSaleDate(sale.saleDate),
+      saleDateISO: serialiseSaleDate(sale.saleDate),
+      createdAt:   serialiseSaleDate(sale.createdAt),
+      updatedAt:   new Date().toISOString(),
+    };
+
+    return { deleted: false, sale: serialisedSale, stockUpdates };
+  }
+
+  // ── Full return: delete the sale document entirely ────────────────
   await salesRef.delete();
-
-  if (itemIds.length === 0) return [];
-
-  // ── Fetch current inventory quantities ───────────────────────────
-  const inventoryRef = db
-    .collection('inventory')
-    .doc(uid)
-    .collection('items');
-
-  const snapshots = await Promise.all(
-    itemIds.map(id => inventoryRef.doc(id).get())
-  );
-
-  // ── Restore stock and collect results ────────────────────────────
-  const stockUpdates = [];
-
-  await Promise.all(
-    snapshots.map(async snap => {
-      if (!snap.exists) return; // item was deleted from inventory — skip
-      const currentQty  = snap.data().quantity || 0;
-      const returnedQty = returnMap[snap.id]   || 0;
-      const newQuantity = currentQty + returnedQty;
-
-      await inventoryRef.doc(snap.id).update({
-        quantity:  newQuantity,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-
-      stockUpdates.push({ id: snap.id, newQuantity });
-    })
-  );
-
-  return stockUpdates;
+  return { deleted: true, sale: null, stockUpdates };
 }
 
 /**
