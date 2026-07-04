@@ -597,7 +597,7 @@ export default function InventoryDashboard({ items, setItems }) {
         return;
       }
       if (res.status === 413) { setFormError(data.message || 'Image is too large. Maximum size is 5MB.'); return; }
-      if (!res.ok || !data.success) { setFormError("Something went wrong. Your item wasn't saved — please try again."); return; }
+      if (!res.ok || !data.success) { setFormError(data.message || "Something went wrong. Your item wasn't saved — please try again."); return; }
       setItems(prev => [data.item, ...prev]);
       closeAddModal();
     } catch {
