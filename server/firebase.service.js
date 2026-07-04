@@ -49,14 +49,15 @@ const FieldValue = admin.firestore.FieldValue;
 
 // ── Collection name constants ─────────────────────────────────────
 const COLLECTIONS = {
-  USERS:       'users',
-  NOMINATIONS: 'nominations',
-  SUBSCRIBERS: 'subscribers',
-  UNDER30:     'under30applications',
-  ADVISOR:     'advisorSessions',
-  CFO_ENTRIES: 'cfoEntries',   // sub-keyed by uid + tool name
-  INVENTORY:     'inventory',      // sub-keyed by uid → items sub-collection
-  SALES_DAY_BOOK:'salesDayBook',   // sub-keyed by uid → sales sub-collection
+  USERS:         'users',
+  NOMINATIONS:   'nominations',
+  SUBSCRIBERS:   'subscribers',
+  UNDER30:       'under30applications',
+  ADVISOR:       'advisorSessions',
+  CFO_ENTRIES:   'cfoEntries',      // sub-keyed by uid + tool name
+  INVENTORY:     'inventory',        // sub-keyed by uid → items sub-collection
+  SALES_DAY_BOOK:'salesDayBook',    // sub-keyed by uid → sales sub-collection
+  DAY_LOG:       'dayLog',          // sub-keyed by uid → entries sub-collection
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -1090,6 +1091,175 @@ async function getItemSaleHistory(uid, itemId) {
   return results;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// DAY LOG
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * getDayLogEntries
+ *
+ * Fetches a paginated page of day log entries for a user, ordered
+ * newest first. Uses cursor-based pagination via Firestore's
+ * startAfter so large logs never cause a delay on load.
+ *
+ * @param {string}  uid
+ * @param {number}  limit        Entries per page (default 10)
+ * @param {Object}  [cursor]     Last Firestore document snapshot from previous page
+ * @returns {Promise<{ entries: Object[], hasMore: boolean, lastDoc: Object|null }>}
+ */
+async function getDayLogEntries(uid, limit = 10, cursorId = null) {
+  let query = db
+    .collection(COLLECTIONS.DAY_LOG)
+    .doc(uid)
+    .collection('entries')
+    .orderBy('entryDate', 'desc');
+
+  // Cursor — get the snapshot of the last document from the previous page
+  if (cursorId) {
+    const cursorSnap = await db
+      .collection(COLLECTIONS.DAY_LOG)
+      .doc(uid)
+      .collection('entries')
+      .doc(cursorId)
+      .get();
+    if (cursorSnap.exists) query = query.startAfter(cursorSnap);
+  }
+
+  // Fetch one extra to know if there's a next page
+  const snap    = await query.limit(limit + 1).get();
+  const hasMore = snap.docs.length > limit;
+  const docs    = hasMore ? snap.docs.slice(0, limit) : snap.docs;
+
+  const entries = docs.map(d => {
+    const data = d.data();
+    return {
+      id:           d.id,
+      entryDate:    data.entryDate    || '',
+      title:        data.title        || '',
+      body:         data.body         || '',
+      createdAtISO: data.createdAt?.toDate?.()?.toISOString()
+                    || data.createdAtISO
+                    || null,
+      updatedAtISO: data.updatedAt?.toDate?.()?.toISOString() || null,
+    };
+  });
+
+  return {
+    entries,
+    hasMore,
+    lastId: docs.length > 0 ? docs[docs.length - 1].id : null,
+  };
+}
+
+/**
+ * getDayLogForAI
+ *
+ * Fetches the most recent N day log entries for injecting into the
+ * AI advisor context. Returns lightweight summary objects only.
+ *
+ * @param {string} uid
+ * @param {number} limit  Max entries to include (default 30)
+ * @returns {Promise<Object[]>}
+ */
+async function getDayLogForAI(uid, limit = 30) {
+  const snap = await db
+    .collection(COLLECTIONS.DAY_LOG)
+    .doc(uid)
+    .collection('entries')
+    .orderBy('entryDate', 'desc')
+    .limit(limit)
+    .get();
+
+  return snap.docs.map(d => ({
+    id:        d.id,
+    entryDate: d.data().entryDate || null,
+    title:     d.data().title     || '',
+    body:      d.data().body      || '',
+  }));
+}
+
+/**
+ * saveDayLogEntry
+ *
+ * Creates a new day log entry.
+ *
+ * @param {string} uid
+ * @param {Object} entry  { entryDate, title, body }
+ * @returns {Promise<Object>}
+ */
+async function saveDayLogEntry(uid, entry) {
+  const ref = db
+    .collection(COLLECTIONS.DAY_LOG)
+    .doc(uid)
+    .collection('entries')
+    .doc();
+
+  const now = new Date();
+  const doc = {
+    id:          ref.id,
+    entryDate:   entry.entryDate,
+    title:       entry.title  || '',
+    body:        entry.body   || '',
+    createdAt:   FieldValue.serverTimestamp(),
+    updatedAt:   FieldValue.serverTimestamp(),
+    createdAtISO: now.toISOString(),
+  };
+
+  await ref.set(doc);
+
+  // Return only serialisable fields — FieldValue.serverTimestamp() objects
+  // cannot be sent as JSON. The ISO string is the safe equivalent for the client.
+  return {
+    id:           ref.id,
+    entryDate:    entry.entryDate,
+    title:        entry.title  || '',
+    body:         entry.body   || '',
+    createdAtISO: now.toISOString(),
+    updatedAtISO: now.toISOString(),
+  };
+}
+
+/**
+ * updateDayLogEntry
+ *
+ * Updates title and/or body of an existing entry.
+ *
+ * @param {string} uid
+ * @param {string} entryId
+ * @param {Object} updates  { title?, body?, entryDate? }
+ * @returns {Promise<void>}
+ */
+async function updateDayLogEntry(uid, entryId, updates) {
+  const ref = db
+    .collection(COLLECTIONS.DAY_LOG)
+    .doc(uid)
+    .collection('entries')
+    .doc(entryId);
+
+  await ref.update({
+    ...updates,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+/**
+ * deleteDayLogEntry
+ *
+ * Permanently deletes a day log entry.
+ *
+ * @param {string} uid
+ * @param {string} entryId
+ * @returns {Promise<void>}
+ */
+async function deleteDayLogEntry(uid, entryId) {
+  await db
+    .collection(COLLECTIONS.DAY_LOG)
+    .doc(uid)
+    .collection('entries')
+    .doc(entryId)
+    .delete();
+}
+
 module.exports = {
   // Users / GYB
   createGybSession,
@@ -1135,4 +1305,11 @@ module.exports = {
   updateSale,
   deleteSale,
   getItemSaleHistory,
+
+  // Day Log
+  getDayLogEntries,
+  getDayLogForAI,
+  saveDayLogEntry,
+  updateDayLogEntry,
+  deleteDayLogEntry,
 };
