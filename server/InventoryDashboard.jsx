@@ -532,6 +532,7 @@ export default function InventoryDashboard({ items, setItems }) {
   const [isSaving,      setIsSaving]      = useState(false);
   const [formError,     setFormError]     = useState('');
   const [deleteId,      setDeleteId]      = useState(null);
+  const [deleteError,   setDeleteError]   = useState('');
   const fileRef = useRef(null);
 
   // ── Per-item action modals ────────────────────────────────────
@@ -607,14 +608,25 @@ export default function InventoryDashboard({ items, setItems }) {
 
   // ── Delete item ───────────────────────────────────────────────
   async function handleDelete(item) {
+    if (!window.confirm(`Remove "${item.name}" from inventory? This can't be undone.`)) return;
+
+    setDeleteError('');
     setDeleteId(item.id);
     try {
       const params = item.image_ext ? `?image_ext=${item.image_ext}` : '';
       const res = await fetch(`/api/inventory/${item.id}${params}`, { method: 'DELETE', credentials: 'include' });
-      if (!res.ok) return;
+      if (!res.ok) {
+        let message = 'Could not remove this item. Please try again.';
+        try { const data = await res.json(); message = data.message || message; } catch { /* non-JSON error body */ }
+        setDeleteError(message);
+        return;
+      }
       setItems(prev => prev.filter(i => i.id !== item.id));
-    } catch { /* silent */ }
-    finally { setDeleteId(null); }
+    } catch {
+      setDeleteError('Network error — please check your connection and try again.');
+    } finally {
+      setDeleteId(null);
+    }
   }
 
   // ── Edit saved callback ───────────────────────────────────────
@@ -707,6 +719,17 @@ export default function InventoryDashboard({ items, setItems }) {
               <X size={14} />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Delete error — shown until the next successful action or dismissed */}
+      {deleteError && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle size={13} className="text-red-500 shrink-0" />
+          <p className="text-red-600 text-xs flex-1">{deleteError}</p>
+          <button onClick={() => setDeleteError('')} className="text-red-400 hover:text-red-600 transition">
+            <X size={13} />
+          </button>
         </div>
       )}
 
