@@ -84,13 +84,14 @@ const {
   DeleteObjectCommand,
 } = require('@aws-sdk/client-s3');
 
-const { getSignedUrl }  = require('@aws-sdk/s3-request-presigner');
 const { v4: uuidv4 }    = require('uuid');
 const ApiError          = require('../utils/ApiError');
 
 // ── AWS clients ───────────────────────────────────────────────────
+const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+
 const ddbClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: AWS_REGION,
   credentials: {
     accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -103,7 +104,7 @@ const dynamo = DynamoDBDocumentClient.from(ddbClient, {
 });
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
+  region: AWS_REGION,
   credentials: {
     accessKeyId:     process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -819,13 +820,14 @@ async function uploadInventoryImage(uid, itemId, fileBuffer, originalname, mimet
     CacheControl: 'public, max-age=31536000',
   }));
 
-  // Generate a presigned GET URL valid for 10 years (~same as Firebase's 2099 trick)
-  const command = new (require('@aws-sdk/client-s3').GetObjectCommand)({
-    Bucket: S3_BUCKET,
-    Key:    key,
-  });
-  const url = await getSignedUrl(s3, command, { expiresIn: 60 * 60 * 24 * 365 * 10 });
-  return url;
+  // Plain public URL — NOT presigned. S3 presigned (SigV4) URLs are
+  // hard-capped at 7 days by AWS no matter what expiresIn is set to,
+  // which made these product images go dead a week after upload.
+  // These images aren't sensitive, so a permanent public URL is the
+  // right fit — requires the bucket path to actually be public-read
+  // (see the bucket policy in the deployment notes; this alone does
+  // nothing without that policy in place).
+  return `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${key}`;
 }
 
 async function deleteInventoryImage(uid, itemId, originalExt) {
