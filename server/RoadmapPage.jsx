@@ -1,10 +1,13 @@
 /**
  * RoadmapPage.jsx — User Dashboard
  *
- * Three views managed by `activeView`:
- *   'home'    → Business OS (roadmap insight, AI suite cards) — default
- *   'advisor' → AI Advisor chat
- *   'cfo'     → Digital CFO (accounting tools, persistent entries, AI insight)
+ * Views managed by `activeView`:
+ *   'home'      → Business OS (roadmap insight, AI suite cards) — default
+ *   'advisor'   → AI Advisor chat
+ *   'cfo'       → Digital CFO (accounting tools, persistent entries, AI insight)
+ *   'inventory' → Inventory management
+ *   'sales'     → Sales Day Book
+ *   'daylog'    → Day Log (founder's persistent daily business journal)
  *
  * On load:
  *   1. Auth guard — redirect to home if no session
@@ -20,14 +23,17 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import InventoryDashboard from './InventoryDashboard';
 import SalesDayBook        from './SalesDayBook';
+import DayLog              from './DayLog';
+import ReportsView         from './ReportsView';
+import TeamSettings        from './TeamSettings';
 import {
   Zap, TrendingUp, DollarSign, Bot, User,
   CheckCircle, ArrowRight, Menu, X,
   Loader2, Home, Sparkles, RefreshCcw,
   LogOut, MessageSquare, Calculator, Package, Receipt,
-  Globe, Edit2, Activity, ChevronLeft,
+  Globe, Edit2, Activity, ChevronLeft, Users,
   Plus, Trash2, AlertCircle,
-  BookOpen, TrendingDown, Send,
+  BookOpen, TrendingDown, Send, NotebookPen, BarChart2, ChevronDown,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────
@@ -68,6 +74,7 @@ const NAV_ITEMS = [
   { id: 'cfo',       label: 'Digital CFO',  icon: <Calculator size={16} /> },
   { id: 'inventory', label: 'Inventory',    icon: <Package size={16} /> },
   { id: 'sales',     label: 'Sales',        icon: <Receipt size={16} /> },
+  { id: 'daylog',    label: 'Day Log',      icon: <NotebookPen size={16} /> },
 ];
 
 const FALLBACK_INSIGHT = {
@@ -264,7 +271,24 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
     setMessages(next);
     setIsLoading(true);
     try {
-      const history = next.slice(1).slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+      // Build history from the conversation — exclude the first (base data)
+      // exchange and the current pending user message (last entry).
+      // Hard-cap at the last 20 turns and truncate any single message that is
+      // unusually long (e.g. a very detailed AI response) to 1500 chars so
+      // the payload stays well under the 2mb server limit regardless of
+      // conversation length.
+      const MAX_HISTORY_TURNS  = 20;
+      const MAX_MSG_CHARS      = 1500;
+      const history = next
+        .slice(1)          // drop the first system/base-data exchange
+        .slice(0, -1)      // drop the pending user message (sent as `message`)
+        .slice(-MAX_HISTORY_TURNS)
+        .map(m => ({
+          role:    m.role,
+          content: m.content.length > MAX_MSG_CHARS
+            ? m.content.slice(0, MAX_MSG_CHARS) + '…'
+            : m.content,
+        }));
       const res  = await fetch('/api/advisor', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -273,6 +297,10 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
           history,
           language: language || 'English',
           profile,
+          context: 'dashboard', // tells the backend this is the logged-in
+                                 // dashboard tab, not the public homepage
+                                 // widget — required for real business
+                                 // data grounding and permission checks
         }),
       });
       let data;
@@ -676,11 +704,51 @@ export default function RoadmapPage() {
   const profile    = Object.keys(routeState).length > 0 ? routeState : (user || {});
   const { businessName = 'Your Business', fullName = '', stage = 'Launch', salesChannel = 'Social Media', revenue = '', headache = 'Tracking Cashflow' } = profile;
 
+  const isTeamMember  = user?.role === 'member';
+  // ── Team access — filter tabs for team members ───────────────────
+  // Owners see every tab, unchanged. Members only see tabs matching
+  // their granted permissions — 'home' (Business OS) is deliberately
+  // NOT given a free pass here: it's a hub that surfaces CFO and
+  // Advisor content (the "Ask AI Advisor" button, the "AI Suite"
+  // cards, Business Pulse), so it's owner-only rather than something
+  // to gate link-by-link inside the view.
+  const visibleNavItems = NAV_ITEMS.filter(item => {
+    if (!isTeamMember) return true;
+    return (user?.permissions || []).includes(item.id);
+  });
+
+  // The Generate accordion (Sales Report / Inventory Report) lives
+  // outside NAV_ITEMS entirely — it's a separate hardcoded block in
+  // the sidebar, so visibleNavItems filtering never touched it.
+  // Both sub-items render <ReportsView type="sales"|"inventory" />
+  // (see the render blocks below) — this is really the 'reports'
+  // feature, parameterized by data type, NOT the 'sales'/'inventory'
+  // features. So a member needs 'reports' granted to see either one —
+  // having 'sales' or 'inventory' alone does not unlock this. That's
+  // the one permission an owner assigns to control Generate access.
+  const GENERATE_ITEMS = [
+    { id: 'generate-sales',     label: 'Sales Report',     icon: <TrendingUp size={13} /> },
+    { id: 'generate-inventory', label: 'Inventory Report', icon: <Package size={13} /> },
+  ];
+  const visibleGenerateItems = (!isTeamMember || (user?.permissions || []).includes('reports'))
+    ? GENERATE_ITEMS
+    : [];
+
+  // Members land on their first granted tab instead of 'home' (which
+  // they can't see at all). Falls back to 'home' for owners, and to
+  // whatever's first in NAV_ITEMS in the rare case a member somehow
+  // has zero granted permissions (shouldn't happen — invites require
+  // at least one — but this avoids a blank screen if it ever does).
+  const defaultView = isTeamMember
+    ? (visibleNavItems[0]?.id || NAV_ITEMS[0].id)
+    : 'home';
+
   // ── ALL STATE — must be before any conditional returns ──────────
   // React requires hooks to be called in the same order every render.
   // Putting useState after an early return violates this rule and
   // causes blank screens when the early return condition changes.
-  const [activeView,     setActiveView]     = useState('home');
+  const [activeView,     setActiveView]     = useState(defaultView);
+  const [generateOpen,   setGenerateOpen]   = useState(false); // Generate accordion
   const [menuOpen,       setMenuOpen]       = useState(false); // mobile drawer
   const [sidebarOpen,    setSidebarOpen]    = useState(       // desktop sidebar
     () => localStorage.getItem('br_sidebar_open') !== 'false'  // default: open
@@ -721,6 +789,20 @@ export default function RoadmapPage() {
     if (!hasRouteState && !isAuthenticated) navigate('/', { replace: true });
   }, [isRestoring, isAuthenticated, hasRouteState, navigate]);
 
+  // ── Correct activeView once auth resolves ─────────────────────
+  // defaultView (computed above from `user`) is only used as the
+  // useState initial value on the very first render — if `user` isn't
+  // hydrated yet at mount (the common case while auth is restoring),
+  // that initial value locks in as 'home' before permissions are even
+  // known. Once isRestoring flips false and we can see this is a
+  // member without home access, redirect them off it.
+  useEffect(() => {
+    if (isRestoring) return;
+    if (isTeamMember && !visibleNavItems.some(item => item.id === activeView)) {
+      setActiveView(defaultView);
+    }
+  }, [isRestoring, isTeamMember, user]);
+
   // ── Show language selector on first load ─────────────────────
   // Only show if: auth is resolved, user is present, no language is stored
   // in localStorage, AND we haven't already shown it this mount cycle.
@@ -738,17 +820,28 @@ export default function RoadmapPage() {
     }
   }, [isRestoring, isAuthenticated, hasRouteState, language]);
 
-  // ── Load generic roadmap insight ───────────────────────────────────────────────
-  // fetchGenericInsight is declared first so the useEffect closure below
-  // can reference it. async function declarations inside a component body
-  // are NOT hoisted — defining after the effect that calls it means the
-  // effect closes over undefined.
-  async function fetchGenericInsight(lang) {
-    const resolvedLang = lang || language || 'English';
+  // ── Load generic roadmap insight ─────────────────────────────
+  useEffect(() => {
+    const msgs = [
+      `Analysing market signals for ${businessName}...`,
+      `Mapping ${salesChannel} performance benchmarks...`,
+      `Cross-referencing ${stage} stage playbooks...`,
+      'Initialising your Business OS...',
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      if (i < msgs.length) setLoadMsg(msgs[i]);
+      else { clearInterval(interval); fetchGenericInsight(); }
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function fetchGenericInsight() {
     try {
       const res  = await fetch('/api/roadmap-insight', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache, language: resolvedLang }),
+        body: JSON.stringify({ businessName, stage, salesChannel, revenue, headache, language: language || 'English' }),
       });
       const data = await res.json();
       setGenericInsight(data.insight || FALLBACK_INSIGHT[salesChannel] || FALLBACK_INSIGHT['Social Media']);
@@ -758,43 +851,6 @@ export default function RoadmapPage() {
       setLoading(false);
     }
   }
-
-  // A ref tracks the latest language value so the polling callback inside
-  // the effect never closes over a stale empty string.
-  const languageRef = useRef(language);
-  useEffect(() => { languageRef.current = language; }, [language]);
-
-  useEffect(() => {
-    const msgs = [
-      `Analysing market signals for ${businessName}...`,
-      `Mapping ${salesChannel} performance benchmarks...`,
-      `Cross-referencing ${stage} stage playbooks...`,
-      'Initialising your Business OS...',
-    ];
-    let i = 0;
-    let pollTimer = null;
-    const interval = setInterval(() => {
-      i++;
-      if (i < msgs.length) {
-        setLoadMsg(msgs[i]);
-      } else {
-        clearInterval(interval);
-        // If language already resolved, fire immediately.
-        // Otherwise poll every 300ms until the user picks from the modal.
-        if (languageRef.current) {
-          fetchGenericInsight(languageRef.current);
-        } else {
-          pollTimer = setInterval(() => {
-            if (languageRef.current) {
-              clearInterval(pollTimer);
-              fetchGenericInsight(languageRef.current);
-            }
-          }, 300);
-        }
-      }
-    }, 600);
-    return () => { clearInterval(interval); if (pollTimer) clearInterval(pollTimer); };
-  }, []); // intentionally empty — runs once on mount
 
   // ── Load CFO entries, inventory, sales on mount (or auth restore) ─────
   // On a page refresh, user is null during the auth restoration phase.
@@ -827,7 +883,7 @@ export default function RoadmapPage() {
         if (cfoData.success && cfoData.entries) {
           setAllEntries(cfoData.entries);
           const total = Object.values(cfoData.entries).reduce((s, a) => s + a.length, 0);
-          if (total > 0) fetchCFOInsight(cfoData.entries, language || 'English');
+          if (total > 0) fetchCFOInsight(cfoData.entries);
         }
 
         if (invData.success && invData.items) {
@@ -840,7 +896,7 @@ export default function RoadmapPage() {
 
         // Fetch Business Pulse once all data layers are loaded
         // Small timeout so state updates settle first
-        setTimeout(() => fetchBusinessPulse(language || 'English'), 800);
+        setTimeout(() => fetchBusinessPulse(), 800);
 
       } catch {
         // Silent fail — fall back to generic insight, empty inventory
@@ -853,15 +909,14 @@ export default function RoadmapPage() {
   }, [user?.uid]);  // re-runs once uid becomes available after auth restore
 
   // ── Fetch CFO-informed insight ────────────────────────────────
-  async function fetchCFOInsight(entries, lang) {
-    const resolvedLang = lang || language || 'English';
+  async function fetchCFOInsight(entries) {
     setCfoRefreshing(true);
     try {
       const res  = await fetch('/api/cfo/insight', {
         method:      'POST',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: { businessName, stage, salesChannel, headache, language: resolvedLang } }),
+        body: JSON.stringify({ profile: { businessName, stage, salesChannel, headache, language: language || 'English' } }),
       });
       const data = await res.json();
       if (data.success && data.insight) setCfoInsight(data.insight);
@@ -873,8 +928,7 @@ export default function RoadmapPage() {
   }
 
   // ── Fetch Business Pulse ─────────────────────────────────────
-  async function fetchBusinessPulse(lang) {
-    const resolvedLang = lang || language || 'English';
+  async function fetchBusinessPulse() {
     const uid = user?.uid || profile?.uid;
     if (!uid) return;
     setPulseLoading(true);
@@ -884,10 +938,10 @@ export default function RoadmapPage() {
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          profile:   { businessName, stage, salesChannel, headache, language: resolvedLang },
+          profile:   { businessName, stage, salesChannel, headache, language: language || 'English' },
           inventory: inventoryItems,
           sales:     sales.slice(0, 30),
-          language:  resolvedLang,
+          language:  language || 'English',
         }),
       });
       const data = await res.json();
@@ -910,19 +964,13 @@ export default function RoadmapPage() {
     localStorage.setItem(LANG_KEY, lang);
     setLanguage(lang);
     setShowLangModal(false);
-    // Re-fetch all insights with the newly selected language.
-    // We pass `lang` explicitly because the `language` state update above
-    // is async — by the time the fetch functions run, state may not have
-    // updated yet, so we must not rely on closing over `language`.
+    // Re-fetch insights with new language
     setGenericInsight(null);
     setCfoInsight(null);
     setBusinessPulse(null);
     setLoading(true);
-    setTimeout(() => fetchGenericInsight(lang), 100);
-    // Re-fetch CFO insight if entries exist
-    const total = Object.values(allEntries).reduce((s, a) => s + a.length, 0);
-    if (total > 0) setTimeout(() => fetchCFOInsight(allEntries, lang), 100);
-    setTimeout(() => fetchBusinessPulse(lang), 1200);
+    setTimeout(() => fetchGenericInsight(), 100);
+    setTimeout(() => fetchBusinessPulse(), 1200);
   }
 
   function openAdvisorWithPrompt(prompt) {
@@ -942,6 +990,10 @@ export default function RoadmapPage() {
   function openView(viewId) {
     setActiveView(viewId);
     setMenuOpen(false);
+    // Auto-expand the Generate accordion when a sub-view is selected
+    if (viewId === 'generate-sales' || viewId === 'generate-inventory') {
+      setGenerateOpen(true);
+    }
   }
 
   async function handleLogout() {
@@ -1089,7 +1141,7 @@ export default function RoadmapPage() {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-3">
-          {NAV_ITEMS.map(item => {
+          {visibleNavItems.map(item => {
             const count = badgeCount[item.id] || 0;
             const isActive = activeView === item.id;
             return (
@@ -1128,6 +1180,72 @@ export default function RoadmapPage() {
               </button>
             );
           })}
+
+          {/* ── Generate accordion ───────────────────────────── */}
+          {/* Hidden entirely for a member with neither 'sales' nor
+              'inventory' granted — this was the one nav element that
+              bypassed permission filtering, since it lives outside
+              NAV_ITEMS as its own hardcoded block. */}
+          {visibleGenerateItems.length > 0 && (
+            <>
+              {/* Accordion trigger */}
+              <button
+                onClick={() => {
+                  if (sidebarOpen) {
+                    setGenerateOpen(o => !o);
+                  } else {
+                    // Collapsed sidebar — open sidebar first then expand
+                    openView(visibleGenerateItems[0].id);
+                  }
+                }}
+                title={!sidebarOpen ? 'Generate Reports' : undefined}
+                className={`w-full flex items-center rounded-xl transition-all text-left
+                  ${sidebarOpen ? 'gap-3 px-4 py-3' : 'justify-center px-0 py-3'}
+                  ${(activeView === 'generate-sales' || activeView === 'generate-inventory')
+                    ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
+                  }
+                `}
+              >
+                <BarChart2 size={16} className={`flex-shrink-0 ${(activeView === 'generate-sales' || activeView === 'generate-inventory') ? 'text-amber-500' : ''}`} />
+                {sidebarOpen && (
+                  <>
+                    <span className="text-[11px] font-black uppercase tracking-widest flex-1">Generate</span>
+                    <ChevronDown
+                      size={13}
+                      className={`flex-shrink-0 text-zinc-400 transition-transform duration-200 ${generateOpen ? 'rotate-180' : ''}`}
+                    />
+                  </>
+                )}
+              </button>
+
+              {/* Accordion sub-items */}
+              {sidebarOpen && generateOpen && (
+                <div className="pl-3 space-y-0.5">
+                  {visibleGenerateItems.map(sub => {
+                    const isSubActive = activeView === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => openView(sub.id)}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all text-left border
+                          ${isSubActive
+                            ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 border-transparent'
+                          }
+                    `}
+                  >
+                    <span className={isSubActive ? 'text-amber-500' : 'text-zinc-400'}>{sub.icon}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{sub.label}</span>
+                    {isSubActive && <span className="ml-auto w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+            </>
+          )}
+
         </nav>
 
         {/* Language selector + logout at bottom */}
@@ -1142,6 +1260,25 @@ export default function RoadmapPage() {
             <Globe size={16} className="flex-shrink-0" />
             {sidebarOpen && <span className="text-[11px] font-black uppercase tracking-widest">{language || 'Language'}</span>}
           </button>
+          {/* Team access — owner only. Sits between Language and Exit to
+              Home per design: this is where an owner manages who else
+              can use the dashboard and what they're allowed to see. */}
+          {!isTeamMember && (
+            <button
+              onClick={() => openView('team')}
+              title={!sidebarOpen ? 'Invite or manage team members' : undefined}
+              className={`w-full flex items-center rounded-xl transition border
+                ${sidebarOpen ? 'gap-3 px-4 py-3' : 'justify-center px-0 py-3'}
+                ${activeView === 'team'
+                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                  : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 border-transparent'
+                }
+              `}
+            >
+              <Users size={16} className={`flex-shrink-0 ${activeView === 'team' ? 'text-amber-500' : ''}`} />
+              {sidebarOpen && <span className="text-[11px] font-black uppercase tracking-widest">Invite / Manage Team</span>}
+            </button>
+          )}
           <button
             onClick={handleLogout}
             title={!sidebarOpen ? 'Exit' : undefined}
@@ -1174,7 +1311,10 @@ export default function RoadmapPage() {
           {/* Current view label */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-zinc-900">
-              {NAV_ITEMS.find(n => n.id === activeView)?.label}
+              {activeView === 'generate-sales'     ? 'Sales Report'
+               : activeView === 'generate-inventory' ? 'Inventory Report'
+               : activeView === 'team'               ? 'Team Access'
+               : NAV_ITEMS.find(n => n.id === activeView)?.label}
             </span>
           </div>
 
@@ -1462,6 +1602,40 @@ export default function RoadmapPage() {
               inventoryItems={inventoryItems}
               setInventoryItems={setInventoryItems}
               businessName={businessName}
+            />
+          </div>
+        )}
+
+        {/* ── View: Day Log ─────────────────────────────── */}
+        {activeView === 'daylog' && (
+          <div className="flex-1 max-w-3xl mx-auto w-full px-5 py-8">
+            <DayLog />
+          </div>
+        )}
+
+        {/* ── View: Team Access (owner only) ────────────── */}
+        {activeView === 'team' && !isTeamMember && (
+          <TeamSettings />
+        )}
+
+        {/* ── View: Generate Sales Report ───────────────── */}
+        {activeView === 'generate-sales' && (
+          <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+            <ReportsView
+              type="sales"
+              language={language}
+              profile={{ businessName, stage, salesChannel, headache }}
+            />
+          </div>
+        )}
+
+        {/* ── View: Generate Inventory Report ──────────── */}
+        {activeView === 'generate-inventory' && (
+          <div className="flex-1 max-w-5xl mx-auto w-full px-5 py-8">
+            <ReportsView
+              type="inventory"
+              language={language}
+              profile={{ businessName, stage, salesChannel, headache }}
             />
           </div>
         )}
