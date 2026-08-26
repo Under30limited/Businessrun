@@ -26,10 +26,43 @@
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Loader2, AlertCircle, CheckCircle2, LogIn } from 'lucide-react';
+import { Lock, Loader2, AlertCircle, CheckCircle2, LogIn, Info, Eye, EyeOff } from 'lucide-react';
 
-const inputClass = 'w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-amber-500 transition-colors';
+const inputClass = 'w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 pr-11 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-amber-500 transition-colors';
 const BRAND = '#C5A028';
+
+/**
+ * PasswordInput
+ * A password field with a show/hide eye toggle — used for every
+ * password field on this page (new password, confirm, and the login
+ * password) so people can verify what they actually typed before
+ * submitting, rather than guessing whether autofill or a stray
+ * keystroke changed it.
+ */
+function PasswordInput({ value, onChange, placeholder, autoFocus }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={visible ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={inputClass}
+        autoFocus={autoFocus}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible(v => !v)}
+        tabIndex={-1}
+        className="absolute right-0 top-0 h-full w-11 flex items-center justify-center text-zinc-400 hover:text-zinc-700 transition-colors"
+        aria-label={visible ? 'Hide password' : 'Show password'}
+      >
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
 
 export default function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
@@ -216,7 +249,7 @@ export default function AcceptInvitePage() {
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
-                className={inputClass}
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-amber-500 transition-colors"
               />
             </div>
 
@@ -224,12 +257,10 @@ export default function AcceptInvitePage() {
               <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
                 Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={loginPassword}
                 onChange={e => setLoginPassword(e.target.value)}
                 placeholder="Your password"
-                className={inputClass}
                 autoFocus
               />
             </div>
@@ -253,16 +284,19 @@ export default function AcceptInvitePage() {
         ) : (
           // ── Path 1 form: unclaimed identity — set a password ────
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+              <Info size={14} className="flex-shrink-0 mt-0.5" />
+              <span>If you already have a BusinessRun account with this email, please use your existing account password instead of setting a new one.</span>
+            </div>
+
             <div>
               <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
                 New password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className={inputClass}
                 autoFocus
               />
             </div>
@@ -271,12 +305,10 @@ export default function AcceptInvitePage() {
               <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">
                 Confirm password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
-                className={inputClass}
               />
             </div>
 
