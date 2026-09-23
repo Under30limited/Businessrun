@@ -31,6 +31,18 @@
  * For a person with exactly one business, identityUid === businessUid
  * === uid, so nothing about existing behavior changes.
  *
+ * ── PERSONAL WEALTH OS SESSIONS ──────────────────────────────────
+ * A second, separate space type — see config/personalOptions.js and
+ * services/personal.service.js. Distinguished by `spaceType` in the
+ * payload ('business' | 'personal'); existing tokens signed before
+ * this field existed are treated as 'business' everywhere that reads
+ * it (see middleware/auth.js), so no re-issuance was needed. A
+ * personal session's `uid` holds personalUid, the exact same role
+ * businessUid plays for a business session — every personal-space
+ * controller reads req.user.uid the same way every business
+ * controller always has. Single-user only, so role is always
+ * 'owner' — no permissions field, no team concept at all.
+ *
  * WHAT IS STORED IN THE TOKEN:
  *   uid          — CURRENT business/data scope (see above)
  *   identityUid  — the real logged-in identity
@@ -179,6 +191,33 @@ const PAYMENT_COOKIE_CLEAR_OPTIONS = {
 function signToken(profile) {
   const secret = getSecret();
 
+  // ── Personal Wealth OS session ──────────────────────────────────
+  // A completely separate space type from business — see this file's
+  // header. Kept deliberately LEAN (identity + display fields only,
+  // not the full onboarding questionnaire) — richer profile data
+  // lives in br-personalSpaces, fetched via its own endpoint, rather
+  // than bloating every token the way legacy business tokens do.
+  if (profile.spaceType === 'personal') {
+    const identityUid = profile.identityUid || profile.uid || '';
+    const personalUid = profile.personalUid || profile.uid || '';
+
+    const payload = {
+      uid: personalUid,          // current data scope — mirrors businessUid's role for business tokens
+      identityUid,
+      personalUid,
+      spaceType:  'personal',
+      role:       'owner',       // Personal Wealth OS is single-user only — see config/personalOptions.js
+      email:      profile.email    || '',
+      fullName:   profile.fullName || '',
+      nickname:   profile.nickname || '',
+    };
+
+    return jwt.sign(payload, secret, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      algorithm: 'HS256',
+    });
+  }
+
   const identityUid = profile.identityUid || profile.uid || '';
   const businessUid = profile.businessUid || profile.uid || '';
   const role        = profile.role        || 'owner';
@@ -187,6 +226,7 @@ function signToken(profile) {
     uid:          businessUid,           // current business/data scope
     identityUid,
     businessUid,
+    spaceType:    'business',
     role,
     permissions:  profile.permissions ?? null,
     email:        profile.email        || '',
