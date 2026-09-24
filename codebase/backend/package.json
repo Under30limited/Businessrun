@@ -1,0 +1,38 @@
+{
+  "name": "businessrun-api",
+  "version": "1.0.0",
+  "description": "BusinessRun Express API — Firebase backend",
+  "main": "index.js",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "lint": "eslint . --ext .js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1067.0",
+    "@aws-sdk/client-dynamodb": "^3.1067.0",
+    "@aws-sdk/client-s3": "^3.1067.0",
+    "@aws-sdk/lib-dynamodb": "^3.1067.0",
+    "@aws-sdk/s3-request-presigner": "^3.1067.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "firebase-admin": "^12.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "node-fetch": "^3.3.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}

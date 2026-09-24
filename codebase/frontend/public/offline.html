@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BusinessRun — You're Offline</title>
+  <meta name="theme-color" content="#C5A028" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      width: 64px; height: 64px;
+      background: rgba(197, 160, 40, 0.1);
+      border: 1px solid rgba(197, 160, 40, 0.3);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 32px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .logo span {
+      color: #C5A028;
+      font-size: 28px;
+      font-weight: 900;
+      font-style: italic;
+    }
+    .label {
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #52525b;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 16px;
+      line-height: 1.1;
+    }
+    p {
+      font-size: 14px;
+      color: #71717a;
+      max-width: 320px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #52525b;
+      margin-bottom: 24px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    button {
+      background: #C5A028;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="logo"><span>B</span></div>
+  <p class="label">BusinessRun OS</p>
+  <h1>You're Offline</h1>
+  <p>
+    Your Business OS needs an internet connection to sync your sales, inventory and insights. Check your connection and try again.
+  </p>
+  <div class="status">
+    <div class="dot"></div>
+    No internet connection detected
+  </div>
+  <button onclick="window.location.reload()">Try Again</button>
+
+  <script>
+    // Auto-reload when connectivity returns
+    window.addEventListener('online', () => window.location.reload());
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "plus1": {
+    "usd": null,
+    "ngn": "PLN_dote25rxg8iqhd4",
+    "priceNGNFixed": 4320,
+    "usdAnnual": null,
+    "ngnAnnual": "PLN_yrxaguvjpfqwkw8",
+    "priceNGNFixedAnnual": 31103
+  },
+  "plus2": {
+    "usd": null,
+    "ngn": "PLN_pqkdhpyyepa8zy8",
+    "priceNGNFixed": 10966,
+    "usdAnnual": null,
+    "ngnAnnual": "PLN_se300becmbw7o67",
+    "priceNGNFixedAnnual": 78953
+  },
+  "plus3": {
+    "usd": null,
+    "ngn": "PLN_b2nljnjqkkuor7a",
+    "priceNGNFixed": 17612,
+    "usdAnnual": null,
+    "ngnAnnual": "PLN_j9er83zcuchtbs8",
+    "priceNGNFixedAnnual": 126803
+  }
+}
