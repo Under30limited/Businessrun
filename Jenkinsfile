@@ -23,6 +23,8 @@ pipeline {
     agent any
 
     environment {
+	// Explicitly load Node/NPM/PM2 directory into PATH
+        PATH = "/home/ubuntu/.nvm/versions/node/v22.23.1/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
         // Deployment paths
         DEPLOY_PATH = '/var/www/businessrun'
         BACKEND_PATH = '/var/www/businessrun/server'
