@@ -1,0 +1,18 @@
+0|businessrun-api  | GET /api/payments/verify/br_8MJFTGvcUwtEi8fmG0J7_1789351761741_6fb6270e 304 0.758 ms - -
+0|businessrun-api  | [Error] GET /api/auth/me {
+0|businessrun-api  |   message: 'No session found. Please log in to continue.',
+0|businessrun-api  |   statusCode: 401,
+0|businessrun-api  |   stack: 'Error: No session found. Please log in to continue.\n' +
+0|businessrun-api  |     '    at ApiError.unauthorized (/var/www/businessrun/server/utils/ApiError.js:50:12)\n' +
+0|businessrun-api  |     '    at /var/www/businessrun/server/middleware/auth.js:103:20\n' +
+0|businessrun-api  |     '    at /var/www/businessrun/server/utils/asyncHandler.js:42:19\n' +
+0|businessrun-api  |     '    at Layer.handle [as handle_request] (/var/www/businessrun/server/node_modules/express/lib/router/layer.js:95:5)\n' +
+0|businessrun-api  |     '    at next (/var/www/businessrun/server/node_modules/express/lib/router/route.js:149:13)\n' +
+0|businessrun-api  |     '    at Route.dispatch (/var/www/businessrun/server/node_modules/express/lib/router/route.js:119:3)\n' +
+0|businessrun-api  |     '    at Layer.handle [as handle_request] (/var/www/businessrun/server/node_modules/express/lib/router/layer.js:95:5)\n' +
+0|businessrun-api  |     '    at /var/www/businessrun/server/node_modules/express/lib/router/index.js:284:15\n' +
+0|businessrun-api  |     '    at Function.process_params (/var/www/businessrun/server/node_modules/express/lib/router/index.js:346:12)\n' +
+0|businessrun-api  |     '    at next (/var/www/businessrun/server/node_modules/express/lib/router/index.js:280:10)'
+0|businessrun-api  | }
+0|businessrun-api  | GET /api/auth/me 401 1.091 ms - 1056
+
