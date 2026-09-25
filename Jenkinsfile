@@ -44,7 +44,7 @@ pipeline {
         stage('Deploy Backend') {
             steps {
                 sh '''
-                    rsync -av --delete \
+                    rsync -av --delete --no-group --no-owner \
                         --exclude 'node_modules' \
                         --exclude '.env' \
                         --exclude 'logs' \
