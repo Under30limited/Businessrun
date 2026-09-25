@@ -41,6 +41,22 @@ export const CURRENCY_SYMBOLS = {
   INR: '₹',
 };
 
+export const CURRENCY_LABELS = {
+  USD: 'US Dollar',
+  NGN: 'Nigerian Naira',
+  KES: 'Kenyan Shilling',
+  GHS: 'Ghanaian Cedi',
+  ZAR: 'South African Rand',
+  GBP: 'British Pound',
+  CAD: 'Canadian Dollar',
+  EUR: 'Euro',
+  AED: 'UAE Dirham',
+  RWF: 'Rwandan Franc',
+  UGX: 'Ugandan Shilling',
+  AUD: 'Australian Dollar',
+  INR: 'Indian Rupee',
+};
+
 export const CURRENCIES = Object.keys(FX_RATES_TO_USD);
 
 // Currencies whose smallest everyday unit isn't meaningfully fractional
