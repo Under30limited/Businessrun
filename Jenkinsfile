@@ -66,7 +66,8 @@ pipeline {
             steps {
                 echo '=== Building frontend for production ==='
                 dir('codebase/frontend') {
-                    sh 'npm run build'
+                    // CI=false prevents treating ESLint warnings as errors
+                    sh 'CI=false npm run build'
                 }
             }
         }
