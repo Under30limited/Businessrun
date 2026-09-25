@@ -1,8 +1,22 @@
 /**
  * Jenkinsfile — BusinessRun CI/CD Pipeline
  *
- * Backups stored in /var/www/businessrun/backups/ (inside deploy path
- * where Jenkins has write access). Keeps last 2 backups per component.
+ * Triggers: GitHub webhook on push to main branch
+ * Deploys: Frontend to /var/www/businessrun/, Backend to /var/www/businessrun/server/
+ * Backups: /var/www/businessrun/backups/ (keeps last 2 per component)
+ *
+ * ROLLBACK:
+ *   # List available backups
+ *   ls -lh /var/www/businessrun/backups/
+ *
+ *   # Restore backend
+ *   cd /var/www/businessrun/server
+ *   tar -xzf /var/www/businessrun/backups/backend-YYYYMMDD-HHMMSS.tar.gz
+ *   pm2 reload businessrun-api
+ *
+ *   # Restore frontend
+ *   cd /var/www/businessrun
+ *   tar -xzf /var/www/businessrun/backups/frontend-YYYYMMDD-HHMMSS.tar.gz
  */
 
 pipeline {
@@ -24,6 +38,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                sh '''
+                    echo "=========================================="
+                    echo "Deploying commit: $(git rev-parse --short HEAD)"
+                    echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
+                    echo "Message: $(git log -1 --pretty=%s)"
+                    echo "=========================================="
+                '''
             }
         }
 
@@ -115,7 +136,11 @@ pipeline {
     }
 
     post {
+        success {
+            echo "✅ Deployment successful! Site is live at https://thebusinessrun.com"
+        }
         failure {
+            echo "❌ Deployment failed! Check logs below:"
             sh 'pm2 logs businessrun-api --lines 30 --nostream || true'
         }
         always {
