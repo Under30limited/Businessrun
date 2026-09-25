@@ -44,11 +44,12 @@ pipeline {
         stage('Deploy Backend') {
             steps {
                 sh '''
-                    rsync -av --delete --no-group --no-owner \
+                    rsync -rlpD --delete --omit-dir-times \
                         --exclude 'node_modules' \
                         --exclude '.env' \
                         --exclude 'logs' \
-                        codebase/backend/ ${BACKEND_PATH}/
+                        --exclude 'test' \
+                        codebase/backend/ ${BACKEND_PATH}/ || [ $? -eq 23 ]
                 '''
             }
         }
