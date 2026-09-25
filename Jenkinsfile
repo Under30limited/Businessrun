@@ -1,5 +1,8 @@
 /**
- * Jenkinsfile — BusinessRun CI/CD Pipeline (Lightweight)
+ * Jenkinsfile — BusinessRun CI/CD Pipeline
+ *
+ * Backups stored in /var/www/businessrun/backups/ (inside deploy path
+ * where Jenkins has write access). Keeps last 2 backups per component.
  */
 
 pipeline {
@@ -8,6 +11,7 @@ pipeline {
     environment {
         DEPLOY_PATH = '/var/www/businessrun'
         BACKEND_PATH = '/var/www/businessrun/server'
+        BACKUP_PATH = '/var/www/businessrun/backups'
     }
 
     options {
@@ -32,6 +36,35 @@ pipeline {
             }
         }
 
+        stage('Backup') {
+            steps {
+                sh '''
+                    mkdir -p ${BACKUP_PATH} || true
+                    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+                    # Backup frontend (static folder only, ~small)
+                    if [ -d "${DEPLOY_PATH}/static" ]; then
+                        tar -czf "${BACKUP_PATH}/frontend-${TIMESTAMP}.tar.gz" \
+                            -C ${DEPLOY_PATH} static index.html 2>/dev/null || true
+                    fi
+
+                    # Backup backend code (exclude node_modules/logs)
+                    if [ -d "${BACKEND_PATH}" ]; then
+                        tar -czf "${BACKUP_PATH}/backend-${TIMESTAMP}.tar.gz" \
+                            --exclude='node_modules' --exclude='logs' --exclude='.env' \
+                            -C ${BACKEND_PATH} . 2>/dev/null || true
+                    fi
+
+                    # Keep only last 2 backups per type
+                    ls -t ${BACKUP_PATH}/frontend-*.tar.gz 2>/dev/null | tail -n +3 | xargs rm -f 2>/dev/null || true
+                    ls -t ${BACKUP_PATH}/backend-*.tar.gz 2>/dev/null | tail -n +3 | xargs rm -f 2>/dev/null || true
+
+                    echo "Backups created in ${BACKUP_PATH}"
+                    ls -lh ${BACKUP_PATH}/*.tar.gz 2>/dev/null || echo "No backups yet"
+                '''
+            }
+        }
+
         stage('Deploy Frontend') {
             steps {
                 sh '''
@@ -49,6 +82,7 @@ pipeline {
                         --exclude '.env' \
                         --exclude 'logs' \
                         --exclude 'test' \
+                        --exclude 'backups' \
                         codebase/backend/ ${BACKEND_PATH}/ || [ $? -eq 23 ]
                 '''
             }
