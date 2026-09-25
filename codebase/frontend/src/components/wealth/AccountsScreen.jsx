@@ -52,7 +52,7 @@ export default function AccountsScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this account? This does not delete any income or expenses already linked to it.')) return;
+    if (!window.confirm('Delete this account? This does not delete any income or expenses already linked to it.')) return;
     await fetch(`/api/personal/accounts/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

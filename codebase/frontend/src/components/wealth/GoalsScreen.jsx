@@ -66,7 +66,7 @@ export default function GoalsScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this goal?')) return;
+    if (!window.confirm('Delete this goal?')) return;
     await fetch(`/api/personal/goals/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

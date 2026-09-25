@@ -74,7 +74,7 @@ export default function DebtsScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this debt record?')) return;
+    if (!window.confirm('Delete this debt record?')) return;
     await fetch(`/api/personal/debts/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

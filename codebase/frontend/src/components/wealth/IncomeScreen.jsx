@@ -67,7 +67,7 @@ export default function IncomeScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this income entry? Any linked account balance will be reversed.')) return;
+    if (!window.confirm('Delete this income entry? Any linked account balance will be reversed.')) return;
     await fetch(`/api/personal/income/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

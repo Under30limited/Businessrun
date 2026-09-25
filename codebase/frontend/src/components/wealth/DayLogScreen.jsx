@@ -64,7 +64,7 @@ export default function DayLogScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this journal entry?')) return;
+    if (!window.confirm('Delete this journal entry?')) return;
     await fetch(`/api/personal/daylog/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

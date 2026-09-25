@@ -71,7 +71,7 @@ export default function AssetsScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this asset?')) return;
+    if (!window.confirm('Delete this asset?')) return;
     await fetch(`/api/personal/assets/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }

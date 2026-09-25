@@ -76,7 +76,7 @@ export default function ExpensesScreen() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this expense? Any linked account/envelope balance will be restored.')) return;
+    if (!window.confirm('Delete this expense? Any linked account/envelope balance will be restored.')) return;
     await fetch(`/api/personal/expenses/${id}`, { method: 'DELETE', credentials: 'include' });
     load();
   }
