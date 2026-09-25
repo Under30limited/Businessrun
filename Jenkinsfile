@@ -23,10 +23,7 @@ pipeline {
     agent any
 
     environment {
-        /// Standard global path configuration
-        PATH = "/usr/local/bin:/usr/bin:/bin:$PATH"
-
-	// Deployment paths
+        // Deployment paths
         DEPLOY_PATH = '/var/www/businessrun'
         BACKEND_PATH = '/var/www/businessrun/server'
 
@@ -59,7 +56,7 @@ pipeline {
         stage('Install Frontend Dependencies') {
             steps {
                 echo '=== Installing frontend dependencies ==='
-                dir('frontend') {
+                dir('codebase/frontend') {
                     sh 'npm ci --prefer-offline || npm install'
                 }
             }
@@ -68,7 +65,7 @@ pipeline {
         stage('Build Frontend') {
             steps {
                 echo '=== Building frontend for production ==='
-                dir('frontend') {
+                dir('codebase/frontend') {
                     sh 'npm run build'
                 }
             }
@@ -77,8 +74,8 @@ pipeline {
         stage('Install Backend Dependencies') {
             steps {
                 echo '=== Installing backend dependencies ==='
-                dir('backend') {
-                    sh 'npm ci --prefer-offline || npm install --production'
+                dir('codebase/backend') {
+                    sh 'npm ci --prefer-offline || npm install --omit=dev'
                 }
             }
         }
@@ -86,7 +83,7 @@ pipeline {
         stage('Syntax Check Backend') {
             steps {
                 echo '=== Verifying backend JavaScript syntax ==='
-                dir('backend') {
+                dir('codebase/backend') {
                     sh '''
                         for f in *.js config/*.js controllers/*.js middleware/*.js routes/*.js services/*.js utils/*.js; do
                             if [ -f "$f" ]; then
@@ -115,7 +112,7 @@ pipeline {
 
                     # Deploy new frontend build
                     rm -rf ${DEPLOY_PATH}/static ${DEPLOY_PATH}/index.html ${DEPLOY_PATH}/asset-manifest.json 2>/dev/null || true
-                    cp -r frontend/build/* ${DEPLOY_PATH}/
+                    cp -r codebase/frontend/build/* ${DEPLOY_PATH}/
 
                     echo "Frontend deployed successfully"
                 '''
@@ -147,7 +144,7 @@ pipeline {
                         --exclude '.env' \
                         --exclude '*.log' \
                         --exclude 'package-lock.json' \
-                        backend/ ${BACKEND_PATH}/
+                        codebase/backend/ ${BACKEND_PATH}/
 
                     echo "Backend deployed successfully"
                 '''
