@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X, ArrowRight, ArrowLeft, Loader2, AlertCircle,
-  Eye, EyeOff, LogIn, UserPlus, Sparkles, ShieldCheck, KeyRound, CheckCircle,
+  Eye, EyeOff, LogIn, UserPlus, Sparkles, ShieldCheck, KeyRound, CheckCircle, Shield,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CURRENCIES, CURRENCY_SYMBOLS, CURRENCY_LABELS } from '../utils/currency';
+import PrivacyPolicyModal from './PrivacyPolicyModal';
 
 const ONBOARDING_ENDPOINT = '/api/personal/onboarding';
 
@@ -87,6 +88,8 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword]       = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // Login mode
   const [loginEmail, setLoginEmail]       = useState('');
@@ -124,6 +127,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
 
   function handleClose() {
     setMode('auth'); setStep(1); setError('');
+    setAgreedToPrivacy(false); setShowPrivacyModal(false);
     resetOTPFlow();
     onClose();
   }
@@ -204,6 +208,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
     if (!gender) { setError('Please select a gender option.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (!agreedToPrivacy) { setError('Please accept the Privacy Policy to continue.'); return; }
 
     setSubmitting(true);
     try {
@@ -756,6 +761,34 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
+              {/* Privacy Policy Checkbox */}
+              <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded-xl">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={agreedToPrivacy}
+                      onChange={e => { setAgreedToPrivacy(e.target.checked); setError(''); }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-5 h-5 border-2 border-zinc-600 rounded-md peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all flex items-center justify-center">
+                      {agreedToPrivacy && <CheckCircle size={14} className="text-black" />}
+                    </div>
+                  </div>
+                  <span className="text-xs text-zinc-400 leading-relaxed">
+                    I have read and agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }}
+                      className="text-amber-500 hover:text-amber-400 underline underline-offset-2 font-medium"
+                    >
+                      Privacy Policy
+                    </button>
+                    {' '}governing how BusinessRun collects, processes, and protects my personal data in compliance with the Nigeria Data Protection Act (NDPA) 2023.
+                  </span>
+                </label>
+              </div>
+
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep(3)}
                   className="px-5 py-3.5 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-xl hover:text-white transition">
@@ -771,6 +804,12 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
 
         </div>
       </div>
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
     </div>
   );
 }
