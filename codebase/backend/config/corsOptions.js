@@ -26,8 +26,22 @@ const ALLOWED_ORIGINS = [
 if (process.env.NODE_ENV !== 'production') {
   ALLOWED_ORIGINS.push('http://localhost:3000');
   ALLOWED_ORIGINS.push('http://127.0.0.1:3000');
-  ALLOWED_ORIGINS.push('http://34.44.69.85');// without port
+  ALLOWED_ORIGINS.push('http://34.44.69.85');
   ALLOWED_ORIGINS.push('http://34.228.197.201');
+}
+
+// CORS_EXTRA_ORIGINS: comma-separated list of additional origins to allow
+// Useful for testing production mode locally:
+//   CORS_EXTRA_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+if (process.env.CORS_EXTRA_ORIGINS) {
+  process.env.CORS_EXTRA_ORIGINS.split(',')
+    .map(o => o.trim())
+    .filter(Boolean)
+    .forEach(origin => {
+      if (!ALLOWED_ORIGINS.includes(origin)) {
+        ALLOWED_ORIGINS.push(origin);
+      }
+    });
 }
 
 const corsOptions = {

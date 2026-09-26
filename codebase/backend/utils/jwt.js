@@ -129,13 +129,26 @@ const COOKIE_NAME = 'br_token';
 // in development this must stay undefined, since a cookie scoped to
 // .thebusinessrun.com is simply rejected by the browser when the app
 // is actually running on localhost.
-const COOKIE_DOMAIN = process.env.NODE_ENV === 'production'
-  ? (process.env.COOKIE_DOMAIN || '.thebusinessrun.com')
-  : undefined;
+//
+// COOKIE_DOMAIN env var: set explicitly to override. Use empty string
+// or 'localhost' for local testing in production mode.
+const COOKIE_DOMAIN = (() => {
+  if (process.env.NODE_ENV !== 'production') return undefined;
+  if (process.env.COOKIE_DOMAIN === '' || process.env.COOKIE_DOMAIN === 'localhost') {
+    return undefined; // localhost needs no domain attribute
+  }
+  return process.env.COOKIE_DOMAIN || '.thebusinessrun.com';
+})();
+
+// COOKIE_SECURE env var: set to 'false' to allow HTTP cookies when
+// testing production mode locally (default: true in production)
+const COOKIE_SECURE = process.env.NODE_ENV === 'production'
+  ? (process.env.COOKIE_SECURE !== 'false')
+  : false;
 
 const COOKIE_OPTIONS = {
   httpOnly:  true,
-  secure:    process.env.NODE_ENV === 'production',
+  secure:    COOKIE_SECURE,
   sameSite:  'lax',
   domain:    COOKIE_DOMAIN,
   maxAge:    7 * 24 * 60 * 60 * 1000, // 7 days
@@ -162,7 +175,7 @@ const PAYMENT_COOKIE_NAME = 'br_pmt_token';
 
 const PAYMENT_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
+  secure:   COOKIE_SECURE,
   sameSite: 'lax',
   domain:   COOKIE_DOMAIN,
   maxAge:   60 * 60 * 1000, // 1 hour — generous for slow checkout, short-lived on purpose
