@@ -111,7 +111,8 @@ pipeline {
                     fi
 
                     # Deploy new frontend build
-                    rm -rf ${DEPLOY_PATH}/static ${DEPLOY_PATH}/index.html ${DEPLOY_PATH}/asset-manifest.json 2>/dev/null || true
+                    # Remove old files including legacy 'build' folder if it exists (nginx may have served from there before)
+                    rm -rf ${DEPLOY_PATH}/static ${DEPLOY_PATH}/index.html ${DEPLOY_PATH}/asset-manifest.json ${DEPLOY_PATH}/build 2>/dev/null || true
                     cp -r codebase/frontend/build/* ${DEPLOY_PATH}/
 
                     echo "Frontend deployed successfully"
