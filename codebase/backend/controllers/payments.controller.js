@@ -536,15 +536,30 @@ const verify = asyncHandler(async (req, res) => {
     res.clearCookie(PAYMENT_COOKIE_NAME, PAYMENT_COOKIE_CLEAR_OPTIONS);
   }
 
+  // Fetch the updated subscription so the frontend can update state
+  // immediately without needing to call /api/auth/me (which would
+  // fail if the login session expired during checkout).
+  const { getSubscriptionSummary } = require('../services/subscription.service');
+  let subscription = null;
+  try {
+    const subResult = await getSubscriptionSummary(targetBusinessUid, 'owner');
+    subscription = subResult.subscription;
+  } catch (err) {
+    console.error('[Payments] verify: failed to fetch subscription summary:', err.message);
+  }
+
   res.json({
     success:       true,
     paymentStatus: 'success',
     planName:      plan?.name || null,
     interval,
+    // The full subscription object — lets the frontend update state
+    // directly even if the login session expired during checkout.
+    subscription,
     // Lets the frontend know whether the browser's own LOGIN session
     // is still valid — if not, the upgrade is applied and safe, but
     // the UI won't reflect it until the founder logs back in.
-    sessionValid:  Boolean(req.user) || tokenMatchesThisReference,
+    sessionValid:  Boolean(req.user),
   });
 });
 

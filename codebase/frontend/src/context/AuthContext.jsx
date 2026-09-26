@@ -239,6 +239,22 @@ export function AuthProvider({ children }) {
     }
   }, [setUserProfile]);
 
+  // ── updateSubscription ────────────────────────────────────────────
+  /**
+   * Directly update subscription state without calling /api/auth/me.
+   * Used by BillingCallbackPage when the login session expired during
+   * checkout but the payment was successful — the verify endpoint
+   * returns the subscription data directly so we can update state
+   * without needing a valid session.
+   *
+   * @param {Object} newSubscription  The subscription object from the server
+   */
+  const updateSubscription = useCallback((newSubscription) => {
+    if (newSubscription) {
+      setSubscription(newSubscription);
+    }
+  }, []);
+
   const value = {
     user,
     spaceType,
@@ -255,6 +271,7 @@ export function AuthProvider({ children }) {
     logout,
     setUserProfile,
     refreshSubscription,
+    updateSubscription,
     setDisplayCurrency,
   };
 

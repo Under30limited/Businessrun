@@ -21,7 +21,7 @@ import { CheckCircle2, XCircle, Loader2, ArrowRight } from 'lucide-react';
 export default function BillingCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate         = useNavigate();
-  const { refreshSubscription } = useAuth();
+  const { refreshSubscription, updateSubscription } = useAuth();
 
   const reference = searchParams.get('reference') || searchParams.get('trxref') || '';
 
@@ -67,15 +67,15 @@ export default function BillingCallbackPage() {
         if (data.paymentStatus === 'success') {
           setStatus('success');
           setPlanName(data.planName || '');
-          // sessionValid is false when the browser's cookie had already
-          // expired during checkout (Paystack's card entry/OTP/3D Secure
-          // can take a few minutes) — the upgrade is still fully applied
-          // server-side (see controllers/payments.controller.js), but
-          // this browser has nothing to refresh: refreshSubscription()
-          // would just silently fail the same expired-session check.
           setSessionValid(data.sessionValid !== false);
-          if (data.sessionValid !== false) {
-            await refreshSubscription(); // so the dashboard reflects the new plan immediately
+
+          // Update subscription state directly from the verify response,
+          // no need to call /api/auth/me which might fail if session expired
+          if (data.subscription) {
+            updateSubscription(data.subscription);
+          } else if (data.sessionValid !== false) {
+            // Fallback: if subscription wasn't in response, try refreshing
+            await refreshSubscription();
           }
         } else {
           setStatus('failed');
@@ -90,7 +90,7 @@ export default function BillingCallbackPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [reference, refreshSubscription]);
+  }, [reference, refreshSubscription, updateSubscription]);
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
