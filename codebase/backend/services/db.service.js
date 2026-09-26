@@ -372,6 +372,29 @@ async function updateUserPassword(uid, hashedPassword) {
 }
 
 /**
+ * updatePrivacyConsent
+ * Records when a user agreed to the Privacy Policy (NDPA 2023 compliance).
+ * Called at signup for new users, or when an existing user adds a new
+ * business/personal space (they must agree again, creating an audit trail).
+ *
+ * @param {string} uid             The identity's uid
+ * @param {string} privacyConsentAt  ISO timestamp when consent was given
+ */
+async function updatePrivacyConsent(uid, privacyConsentAt) {
+  const now = nowISO();
+  const { UpdateExpression, ExpressionAttributeNames, ExpressionAttributeValues } =
+    buildUpdateExpr({ privacyConsentAt, updatedAt: now });
+
+  await dynamo.send(new UpdateCommand({
+    TableName: TABLES.USERS,
+    Key:       { uid },
+    UpdateExpression,
+    ExpressionAttributeNames,
+    ExpressionAttributeValues,
+  }));
+}
+
+/**
  * createIdentity
  * Creates a brand-new identity row — pure login credentials, no
  * business data.
@@ -1517,6 +1540,7 @@ module.exports = {
   promoteSessionToUser,
   createIdentity,
   updateUserPassword,
+  updatePrivacyConsent,
   deleteGybSession,
   getUserByUid,
   getUserByEmail,

@@ -545,6 +545,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
           matchmaking,
           profileSavedAt: new Date().toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }),
           source:         'businessrun-gyb',
+          agreedToPrivacy: true,   // NDPA 2023 consent — stored server-side with timestamp
         }),
       });
       let data;

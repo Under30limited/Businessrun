@@ -156,7 +156,7 @@ const saveStep = asyncHandler(async (req, res) => {
 
   // ── Step 4 — Security & Launch ──────────────────────────────────
   if (step === 4) {
-    const body = sanitise(req.body, ['email', 'password', 'gender']);
+    const body = sanitise(req.body, ['email', 'password', 'gender', 'agreedToPrivacy']);
     requireFields(body, ['email', 'password', 'gender']);
 
     if (!isValidEmail(body.email)) {
@@ -169,6 +169,11 @@ const saveStep = asyncHandler(async (req, res) => {
       throw ApiError.badRequest(`Invalid gender option: "${body.gender}".`);
     }
 
+    // ── Privacy Policy consent (NDPA 2023 compliance) ───────────────
+    if (body.agreedToPrivacy !== true) {
+      throw ApiError.badRequest('You must accept the Privacy Policy to create an account.');
+    }
+
     const email = body.email.toLowerCase().trim();
 
     const session = await personalService.getOnboardingSession(sessionId);
@@ -177,6 +182,7 @@ const saveStep = asyncHandler(async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(body.password, 12);
+    const privacyConsentAt = new Date().toISOString();
 
     // ── Multi-tenant identity resolution — see file header ──────────
     const existingIdentity = await db.getUserByEmail(email);
@@ -190,10 +196,13 @@ const saveStep = asyncHandler(async (req, res) => {
         );
       }
       identityUid = existingIdentity.uid;
+      // Re-record consent for audit trail — they agreed again when adding personal space
+      await db.updatePrivacyConsent(identityUid, privacyConsentAt);
       console.log(`[PersonalOnboarding] Existing identity ${identityUid} adding a Personal Wealth space`);
     } else if (existingIdentity && !existingIdentity.claimed) {
       identityUid = existingIdentity.uid;
       await db.updateUserPassword(identityUid, hashedPassword);
+      await db.updatePrivacyConsent(identityUid, privacyConsentAt);
       console.log(`[PersonalOnboarding] Claiming previously-unclaimed identity ${identityUid} (${email})`);
     } else {
       identityUid = uuidv4();
@@ -202,6 +211,7 @@ const saveStep = asyncHandler(async (req, res) => {
         hashedPassword,
         fullName: session.fullName || '',
         source:   'personal-wealth-onboarding',
+        privacyConsentAt,
       });
     }
 

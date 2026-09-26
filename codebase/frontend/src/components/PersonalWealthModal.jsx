@@ -212,7 +212,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
 
     setSubmitting(true);
     try {
-      const data = await postStep(4, { email, password, gender });
+      const data = await postStep(4, { email, password, gender, agreedToPrivacy: true });
       login(data.profile, { spaceType: 'personal' });
       handleClose();
       navigate('/wealth');

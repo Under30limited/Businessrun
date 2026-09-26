@@ -144,9 +144,15 @@ const saveStep = asyncHandler(async (req, res) => {
       'matchmaking',
       'profileSavedAt',
       'source',
+      'agreedToPrivacy',   // NDPA 2023 consent — must be true to complete signup
     ]);
 
     requireFields(body, ['email', 'password']);
+
+    // ── Privacy Policy consent (NDPA 2023 compliance) ───────────────
+    if (body.agreedToPrivacy !== true) {
+      throw ApiError.badRequest('You must accept the Privacy Policy to create an account.');
+    }
 
     if (!isValidEmail(body.email)) {
       throw ApiError.badRequest('Invalid email address.');
@@ -189,6 +195,8 @@ const saveStep = asyncHandler(async (req, res) => {
       : null;
     let identityUid;
 
+    const privacyConsentAt = new Date().toISOString();
+
     if (existingIdentity && existingIdentity.claimed) {
       const passwordMatch = await bcrypt.compare(body.password, existingIdentity.hashedPassword);
       if (!passwordMatch) {
@@ -197,10 +205,13 @@ const saveStep = asyncHandler(async (req, res) => {
         );
       }
       identityUid = existingIdentity.uid;
+      // Re-record consent for audit trail — they agreed again when adding this business
+      await firebaseService.updatePrivacyConsent(identityUid, privacyConsentAt);
       console.log(`[GYB] Existing identity ${identityUid} registering an additional business`);
     } else if (existingIdentity && !existingIdentity.claimed) {
       identityUid = existingIdentity.uid;
       await firebaseService.updateUserPassword(identityUid, hashedPassword);
+      await firebaseService.updatePrivacyConsent(identityUid, privacyConsentAt);
       console.log(`[GYB] Claiming previously-unclaimed identity ${identityUid} (${email})`);
     } else {
       identityUid = uuidv4();
@@ -210,6 +221,7 @@ const saveStep = asyncHandler(async (req, res) => {
         fullName:  (body.fullName || '').trim(),
         sessionId,
         source:    body.source || 'businessrun-gyb',
+        privacyConsentAt,
       });
     }
 
