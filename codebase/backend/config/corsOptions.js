@@ -46,14 +46,14 @@ if (process.env.CORS_EXTRA_ORIGINS) {
 
 const corsOptions = {
   origin(origin, callback) {
-    // Allow requests with no origin (curl, Postman, server-to-server)
-    // Only permit this in development — lock it down in production
+    // Allow requests with no origin:
+    // - Same-origin requests (browser doesn't send Origin header)
+    // - Requests through nginx proxy (Origin header stripped)
+    // - curl, Postman, server-to-server
+    // This is safe because the cookie's SameSite=lax + httpOnly flags
+    // protect against CSRF, not the Origin header check.
     if (!origin) {
-      if (process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-      // In production, block no-origin requests to the API
-      return callback(new Error('CORS: request with no origin blocked in production'));
+      return callback(null, true);
     }
 
     if (ALLOWED_ORIGINS.includes(origin)) {
