@@ -26,7 +26,7 @@ const FEATURE_LABELS = {
   daylog:    'Day Log',
   reports:   'Reports',
   cfo:       'Digital CFO',
-  advisor:   'AI Advisor',
+  advisor:   'BR AI Advisor',
 };
 
 function formatLimit(value, unit = '') {

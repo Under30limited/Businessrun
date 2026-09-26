@@ -73,7 +73,7 @@ const LANG_KEY = 'br_insight_language';
 
 const NAV_ITEMS = [
   { id: 'home',      label: 'Business OS',  icon: <Home size={16} /> },
-  { id: 'advisor',   label: 'AI Advisor',   icon: <MessageSquare size={16} /> },
+  { id: 'advisor',   label: 'BR AI Advisor',   icon: <MessageSquare size={16} /> },
   { id: 'cfo',       label: 'Digital CFO',  icon: <Calculator size={16} /> },
   { id: 'inventory', label: 'Inventory',    icon: <Package size={16} /> },
   { id: 'sales',     label: 'Sales',        icon: <Receipt size={16} /> },
@@ -390,7 +390,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
           </div>
           <div>
             <p className="text-sm font-black uppercase tracking-widest text-zinc-900 flex items-center gap-2">
-              Strategic AI Advisor
+              BR AI Advisor
               <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </p>
             <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">TBR Intelligence Unit</p>
@@ -441,7 +441,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-            placeholder="Ask your AI Advisor anything..."
+            placeholder="Ask your BR AI Advisor anything..."
             className="w-full bg-zinc-100 border border-zinc-300 focus:border-amber-500 rounded-2xl px-5 py-4 pr-14 text-sm text-zinc-900 placeholder:text-zinc-600 focus:outline-none transition resize-none"
           />
           <button type="submit" disabled={isLoading || !input.trim()}
@@ -746,13 +746,13 @@ const AI_SUITE = [
     icon:   <TrendingUp size={20} />,
     title:  'Price Engine',
     desc:   'AI-powered pricing recommendations calibrated to your sector and costs.',
-    tag:    'Ask the AI Advisor',
+    tag:    'Ask BR AI Advisor',
     view:   'advisor',
     prompt: 'Act as my pricing strategist. Give me a framework for setting profitable prices in my sector that accounts for Nigerian market conditions and inflation.',
   },
   {
     icon:   <Bot size={20} />,
-    title:  'Strategic AI Advisor',
+    title:  'BR AI Advisor',
     desc:   'Your on-demand business strategist — trained on Nigerian market conditions.',
     tag:    'Open Advisor',
     view:   'advisor',

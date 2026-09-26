@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, RefreshCcw, Send, Loader2 } from 'lucide-react';
 
-const GREETING = "I'm your Wealth Advisor. Ask me about your spending, your goals, your debts — anything logged so far.";
+const GREETING = "I'm your BR AI Advisor for Personal Wealth. Ask me about your spending, your goals, your debts — anything logged so far.";
 
 export default function AdvisorScreen() {
   const [messages, setMessages] = useState([{ role: 'assistant', content: GREETING }]);
@@ -98,7 +98,7 @@ export default function AdvisorScreen() {
           </div>
           <div>
             <p className="text-sm font-black uppercase tracking-widest text-zinc-900 flex items-center gap-2">
-              Wealth Advisor
+              BR AI Advisor
               <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             </p>
             <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Personal Wealth OS</p>
@@ -138,7 +138,7 @@ export default function AdvisorScreen() {
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Ask about your spending, goals, or debts..."
+          placeholder="Ask your BR AI Advisor about spending, goals, or debts..."
           maxLength={2000}
           className="flex-1 bg-white border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500"
         />

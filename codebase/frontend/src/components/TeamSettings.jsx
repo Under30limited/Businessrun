@@ -28,7 +28,7 @@ const FEATURES = [
   { key: 'daylog',    label: 'Day Log' },
   { key: 'reports',   label: 'Reports' },
   { key: 'cfo',       label: 'Digital CFO' },
-  { key: 'advisor',   label: 'AI Advisor' },
+  { key: 'advisor',   label: 'BR AI Advisor' },
 ];
 
 function fmt(iso) {

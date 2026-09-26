@@ -47,7 +47,7 @@ const TABS = [
   { id: 'goals',     label: 'Goals',         icon: <Target size={16} /> },
   { id: 'daylog',    label: 'Day Log',       icon: <NotebookPen size={16} /> },
   { id: 'networth',  label: 'Net Worth',     icon: <TrendingUp size={16} /> },
-  { id: 'advisor',   label: 'AI Advisor',    icon: <Sparkles size={16} /> },
+  { id: 'advisor',   label: 'BR AI Advisor',    icon: <Sparkles size={16} /> },
 ];
 
 export default function WealthDashboard() {
