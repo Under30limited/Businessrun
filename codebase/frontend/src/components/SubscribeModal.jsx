@@ -21,6 +21,7 @@ export default function SubscribeModal({ isOpen, onClose, resource = null }) {
     function onKey(e) { if (e.key === 'Escape') handleClose(); }
     if (isOpen) document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   function handleClose() {

@@ -18,8 +18,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   BookOpen, Plus, ChevronDown, Loader2, Trash2,
-  Edit3, X, Check, Calendar, FileText,
-  Bold, List, Eye, ChevronLeft, AlertCircle,
+  Edit3, X, Calendar,
+  Bold, List, Eye, AlertCircle,
   Clock, Save,
 } from 'lucide-react';
 

@@ -17,7 +17,7 @@
  */
 
 import React, {
-  useState, useEffect, useRef, useCallback,
+  useState, useEffect, useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -31,12 +31,12 @@ import LowStockBanner from './LowStockBanner';
 import ContactTrigger from './ContactTrigger';
 import {
   Zap, TrendingUp, DollarSign, Bot, User,
-  CheckCircle, ArrowRight, Menu, X,
+  CheckCircle, ArrowRight, Menu,
   Loader2, Home, Sparkles, RefreshCcw,
   LogOut, MessageSquare, Calculator, Package, Receipt,
   Globe, Edit2, Activity, ChevronLeft, Users, Lock, CreditCard,
   Plus, Trash2, AlertCircle,
-  BookOpen, TrendingDown, Send, NotebookPen, BarChart2, ChevronDown,
+  BookOpen, TrendingDown, NotebookPen, BarChart2, ChevronDown,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────
@@ -262,6 +262,7 @@ function AdvisorChat({ initialPrompt, onPromptConsumed, language, profile, cfoEn
     chatInteracted.current = true;
     sendMessage(initialPrompt);
     if (onPromptConsumed) onPromptConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
 
   function renderMessageContent(text) {
@@ -829,7 +830,7 @@ export default function RoadmapPage() {
   const [allEntries,     setAllEntries]     = useState({
     'General Ledger': [], 'Income Statement': [], 'Balance Sheet': [], 'Cash Flow': [],
   });
-  const [entriesLoaded,  setEntriesLoaded]  = useState(false);
+  // entriesLoaded state removed — was declared but never used
   const [advisorPrompt,  setAdvisorPrompt]  = useState('');
   const [inventoryItems, setInventoryItems] = useState([]);
   const [sales,          setSales]          = useState([]);
@@ -869,6 +870,7 @@ export default function RoadmapPage() {
     if (isTeamMember && !visibleNavItems.some(item => item.id === activeView)) {
       setActiveView(defaultView);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestoring, isTeamMember, user]);
 
   // ── Show language selector on first load ─────────────────────
@@ -903,6 +905,7 @@ export default function RoadmapPage() {
       else { clearInterval(interval); fetchGenericInsight(); }
     }, 600);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchGenericInsight() {
@@ -968,13 +971,12 @@ export default function RoadmapPage() {
 
       } catch {
         // Silent fail — fall back to generic insight, empty inventory
-      } finally {
-        setEntriesLoaded(true);
       }
     }
 
     loadEntries();
-  }, [user?.uid]);  // re-runs once uid becomes available after auth restore
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   // ── Fetch CFO-informed insight ────────────────────────────────
   async function fetchCFOInsight(entries) {

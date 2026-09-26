@@ -78,7 +78,8 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
   const [biggestFinancialHeadache, setBiggestFinancialHeadache] = useState('');
 
   // Step 3
-  const [wantsWealthOpportunities, setWantsWealthOpportunities] = useState(null);
+  // State value unused (only setter used) — underscore prefix silences ESLint
+  const [_wantsWealthOpportunities, setWantsWealthOpportunities] = useState(null);
 
   // Step 4
   const [gender, setGender]     = useState('');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X, ArrowRight, ArrowLeft, Loader2, AlertCircle,
-  Zap, Users, TrendingUp, Eye, EyeOff, LogIn, UserPlus,
+  Eye, EyeOff, LogIn, UserPlus,
   KeyRound, CheckCircle, Building2, Wallet,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -133,6 +133,7 @@ export default function GrowYourBusinessModal({ isOpen, onClose }) {
     function onKey(e) { if (e.key === 'Escape') handleClose(); }
     if (isOpen) document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // ── Full reset on close ───────────────────────────────────

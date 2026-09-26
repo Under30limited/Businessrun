@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  FileText, Plus, Trash2, Download,
+  Plus, Trash2, Download,
   Printer, Building2, User, Settings2, Image, X
 } from 'lucide-react';
 

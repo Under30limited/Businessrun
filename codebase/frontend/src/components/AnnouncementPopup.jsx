@@ -18,7 +18,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  X, ArrowRight, Zap, TrendingUp,
+  X, Zap, TrendingUp,
   DollarSign, BarChart3, LogIn, UserPlus,
 } from 'lucide-react';
 

@@ -3,7 +3,7 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer,
 } from 'recharts';
-import { Download, RefreshCcw, Zap, Award, TrendingUp } from 'lucide-react';
+import { Download, RefreshCcw, Zap } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
 const PILLAR_MAX = {

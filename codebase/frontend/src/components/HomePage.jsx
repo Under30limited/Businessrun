@@ -470,6 +470,7 @@ export default function HomePage({
   useEffect(() => {
     const id = setInterval(() => setWordIndex(i => (i + 1) % words.length), 2500);
     return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stories = [

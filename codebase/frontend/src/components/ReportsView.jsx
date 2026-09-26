@@ -20,8 +20,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Loader2, X, Trash2, ChevronDown,
-  ChevronLeft, Calendar, Sparkles, AlertCircle,
-  Clock, RefreshCw, ChevronRight,
+  Calendar, Sparkles, AlertCircle,
+  Clock, RefreshCw,
 } from 'lucide-react';
 
 const inputClass = 'bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-900 focus:outline-none focus:border-amber-500 transition-colors';
