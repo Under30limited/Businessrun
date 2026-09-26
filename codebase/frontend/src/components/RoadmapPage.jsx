@@ -930,10 +930,7 @@ export default function RoadmapPage() {
   // The dataFetchedRef prevents a double-fetch if the effect fires twice.
   useEffect(() => {
     const uid = user?.uid || profile?.uid;
-    if (!uid || dataFetchedRef.current) { 
-      if (!uid) setEntriesLoaded(true);
-      return; 
-    }
+    if (!uid || dataFetchedRef.current) return;
     dataFetchedRef.current = true;
 
     async function loadEntries() {
