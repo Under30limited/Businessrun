@@ -46,7 +46,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto px-6 py-6 text-sm text-zinc-700 leading-relaxed space-y-6">
           {/* Entity Info */}
           <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-1">
-            <p><strong>Entity:</strong> Businessrun Nigeria Ltd ("BusinessRun", "we", "us", or "our")</p>
+            <p><strong>Entity:</strong> Businessrun Nig Ltd ("BusinessRun", "we", "us", or "our")</p>
             <p><strong>Corporate Registration:</strong> Registered under the Companies and Allied Matters Act (CAMA) of Nigeria</p>
             <p className="flex items-center gap-2">
               <Mail size={14} className="text-zinc-400" />
@@ -62,7 +62,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
           <section>
             <h3 className="font-bold text-zinc-900 mb-2">1. Introduction & Scope</h3>
             <p>
-              Businessrun Nigeria Ltd provides an automated financial operating system, digital daybook,
+              Businessrun Nig Ltd provides an automated financial operating system, digital daybook,
               and business intelligence platform for enterprises, merchants, and independent operators.
               Our services operate across web workspaces and conversational communication channels
               (including interactive messaging integrations).
@@ -241,9 +241,9 @@ export default function PrivacyPolicyModal({ isOpen, onClose }) {
           {/* Section 9 */}
           <section>
             <h3 className="font-bold text-zinc-900 mb-2">9. Compliance Desk & Regulatory Inquiries</h3>
-            <p className="mb-2">Businessrun Nigeria Ltd maintains a designated internal compliance desk responsible for adherence to the NDPA:</p>
+            <p className="mb-2">Businessrun Nig Ltd maintains a designated internal compliance desk responsible for adherence to the NDPA:</p>
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-1">
-              <p><strong>Entity:</strong> Businessrun Nigeria Ltd</p>
+              <p><strong>Entity:</strong> Businessrun Nig Ltd</p>
               <p><strong>Responsible Desk:</strong> Compliance & Data Protection Desk</p>
               <p><strong>Contact Officer:</strong> Maxwell Njarika (Director / Compliance Lead)</p>
               <p><strong>Direct Compliance Email:</strong> maxwell@thebusinessrun.com</p>
