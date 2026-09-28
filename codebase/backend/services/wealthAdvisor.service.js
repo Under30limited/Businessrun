@@ -327,7 +327,7 @@ function buildPersonalDataSummary({
  * @param {string} message
  * @param {Array}  history   [{ role: 'user'|'assistant', content }]
  * @param {Object} options
- * @param {Object} [options.profile]   { fullName, nickname, primaryIncomeSource, monthlyIncomeBracket, biggestFinancialHeadache }
+ * @param {Object} [options.profile]   { fullName, nickname, primaryIncomeSources, monthlyIncomeBracket, biggestFinancialHeadaches }
  * @param {Object} [options.dataSummaryInput]  passed straight to buildPersonalDataSummary
  * @param {boolean} [options.injectBaseData]
  * @returns {Promise<{ text: string }>}
@@ -355,14 +355,20 @@ async function getWealthAdvisorReply(message, history = [], options = {}) {
     `\n  Use these anchors to interpret "today", "this week", "this month", "recently", "days ago" etc.` +
     `\n  When an expense or income entry has a date, compute how many days ago it happened relative to ${todayISO}.`;
 
-  const { fullName, nickname, primaryIncomeSource, monthlyIncomeBracket, biggestFinancialHeadache } = profile;
+  const { fullName, nickname, primaryIncomeSources, monthlyIncomeBracket, biggestFinancialHeadaches } = profile;
   if (fullName || nickname) {
+    const incomeSrcStr = Array.isArray(primaryIncomeSources) && primaryIncomeSources.length > 0
+      ? primaryIncomeSources.join(', ')
+      : 'Unknown';
+    const headachesStr = Array.isArray(biggestFinancialHeadaches) && biggestFinancialHeadaches.length > 0
+      ? biggestFinancialHeadaches.join(', ')
+      : 'Unknown';
     systemInstruction +=
       `\n\nPERSON'S PROFILE:` +
       `\n  Name/nickname:      ${nickname || fullName}` +
-      `\n  Primary income:     ${primaryIncomeSource || 'Unknown'}` +
+      `\n  Primary income:     ${incomeSrcStr}` +
       `\n  Income bracket:     ${monthlyIncomeBracket || 'Unknown'}` +
-      `\n  Biggest headache:   ${biggestFinancialHeadache || 'Unknown'}`;
+      `\n  Biggest headaches:  ${headachesStr}`;
   }
 
   systemInstruction +=

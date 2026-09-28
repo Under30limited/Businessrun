@@ -91,9 +91,9 @@ const chat = asyncHandler(async (req, res) => {
       profile: {
         fullName: space?.fullName,
         nickname: space?.nickname,
-        primaryIncomeSource: space?.primaryIncomeSource,
+        primaryIncomeSources: space?.primaryIncomeSources,
         monthlyIncomeBracket: space?.monthlyIncomeBracket,
-        biggestFinancialHeadache: space?.biggestFinancialHeadache,
+        biggestFinancialHeadaches: space?.biggestFinancialHeadaches,
       },
       dataSummaryInput,
       injectBaseData: shouldRefreshContext,

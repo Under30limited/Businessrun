@@ -397,14 +397,14 @@ const getMe = asyncHandler(async (req, res) => {
         // Richer onboarding-questionnaire fields, fetched fresh here
         // rather than embedded in the (deliberately lean) token — see
         // utils/jwt.js's PERSONAL WEALTH OS SESSIONS section.
-        countryOfResidence:       personalSpace?.countryOfResidence       || '',
-        phoneNumber:              personalSpace?.phoneNumber              || '',
-        gender:                   personalSpace?.gender                   || '',
-        primaryIncomeSource:      personalSpace?.primaryIncomeSource      || '',
-        assetLocations:           personalSpace?.assetLocations           || [],
-        monthlyIncomeBracket:     personalSpace?.monthlyIncomeBracket     || '',
-        biggestFinancialHeadache: personalSpace?.biggestFinancialHeadache || '',
-        wantsWealthOpportunities: Boolean(personalSpace?.wantsWealthOpportunities),
+        countryOfResidence:        personalSpace?.countryOfResidence        || '',
+        phoneNumber:               personalSpace?.phoneNumber               || '',
+        gender:                    personalSpace?.gender                    || '',
+        primaryIncomeSources:      personalSpace?.primaryIncomeSources      || [],
+        assetLocations:            personalSpace?.assetLocations            || [],
+        monthlyIncomeBracket:      personalSpace?.monthlyIncomeBracket      || '',
+        biggestFinancialHeadaches: personalSpace?.biggestFinancialHeadaches || [],
+        wantsWealthOpportunities:  Boolean(personalSpace?.wantsWealthOpportunities),
         // The dashboard's display currency (changeable at will via
         // PATCH /api/personal/profile — see
         // personalProfile.controller.js) — fetched fresh, same as the

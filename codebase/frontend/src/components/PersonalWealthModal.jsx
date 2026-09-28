@@ -73,10 +73,10 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
   const [displayCurrency, setDisplayCurrencyField] = useState('NGN'); // matches backend's DEFAULT_DISPLAY_CURRENCY — changeable any time later from the dashboard
 
   // Step 2
-  const [primaryIncomeSource, setPrimaryIncomeSource] = useState('');
+  const [primaryIncomeSources, setPrimaryIncomeSources] = useState([]);
   const [assetLocations, setAssetLocations]           = useState([]);
   const [monthlyIncomeBracket, setMonthlyIncomeBracket] = useState('');
-  const [biggestFinancialHeadache, setBiggestFinancialHeadache] = useState('');
+  const [biggestFinancialHeadaches, setBiggestFinancialHeadaches] = useState([]);
 
   // Step 3
   // State value unused (only setter used) — underscore prefix silences ESLint
@@ -138,6 +138,18 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
     );
   }
 
+  function toggleIncomeSource(value) {
+    setPrimaryIncomeSources(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  }
+
+  function toggleFinancialHeadache(value) {
+    setBiggestFinancialHeadaches(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  }
+
   async function postStep(step, body) {
     const res = await fetch(ONBOARDING_ENDPOINT, {
       method: 'POST',
@@ -173,13 +185,13 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
   async function handleStep2Submit(e) {
     e.preventDefault();
     setError('');
-    if (!primaryIncomeSource || assetLocations.length === 0 || !monthlyIncomeBracket || !biggestFinancialHeadache) {
+    if (primaryIncomeSources.length === 0 || assetLocations.length === 0 || !monthlyIncomeBracket || biggestFinancialHeadaches.length === 0) {
       setError('Please answer all four questions.');
       return;
     }
     setSubmitting(true);
     try {
-      await postStep(2, { primaryIncomeSource, assetLocations, monthlyIncomeBracket, biggestFinancialHeadache });
+      await postStep(2, { primaryIncomeSources, assetLocations, monthlyIncomeBracket, biggestFinancialHeadaches });
       setStep(3);
     } catch (err) {
       setError(err.message);
@@ -667,7 +679,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
               </p>
 
               <ChoiceGroup label="Primary Income Source?" options={INCOME_SOURCES}
-                value={primaryIncomeSource} onChange={setPrimaryIncomeSource} />
+                multi value={primaryIncomeSources} onChange={toggleIncomeSource} />
 
               <ChoiceGroup label="Where do you hold your money / assets?" options={ASSET_LOCATIONS}
                 multi value={assetLocations} onChange={toggleAssetLocation} />
@@ -676,7 +688,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
                 value={monthlyIncomeBracket} onChange={setMonthlyIncomeBracket} />
 
               <ChoiceGroup label="Biggest Financial Headache Today?" options={FINANCIAL_HEADACHES}
-                value={biggestFinancialHeadache} onChange={setBiggestFinancialHeadache} />
+                multi value={biggestFinancialHeadaches} onChange={toggleFinancialHeadache} />
 
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep(1)}
@@ -696,7 +708,7 @@ export default function PersonalWealthModal({ isOpen, onClose }) {
             <div className="space-y-5">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-300">
                 <Sparkles size={12} className="text-amber-500" />
-                {nickname || 'You'} · {primaryIncomeSource || '—'} · {monthlyIncomeBracket || '—'}
+                {nickname || 'You'} · {primaryIncomeSources.length > 0 ? primaryIncomeSources[0] : '—'} · {monthlyIncomeBracket || '—'}
               </div>
 
               <p className="text-zinc-300 text-sm leading-relaxed">

@@ -171,17 +171,17 @@ async function createPersonalSpace(personalUid, ownerIdentityUid, profile) {
   const item = {
     personalUid,
     ownerIdentityUid,
-    fullName:                 profile.fullName                 || '',
-    nickname:                 profile.nickname                 || '',
-    email:                    profile.email                    || '',
-    countryOfResidence:       profile.countryOfResidence        || '',
-    phoneNumber:              profile.phoneNumber               || '',
-    gender:                   profile.gender                    || '',
-    primaryIncomeSource:      profile.primaryIncomeSource        || '',
-    assetLocations:           profile.assetLocations             || [],
-    monthlyIncomeBracket:     profile.monthlyIncomeBracket       || '',
-    biggestFinancialHeadache: profile.biggestFinancialHeadache   || '',
-    wantsWealthOpportunities: Boolean(profile.wantsWealthOpportunities),
+    fullName:                  profile.fullName                  || '',
+    nickname:                  profile.nickname                  || '',
+    email:                     profile.email                     || '',
+    countryOfResidence:        profile.countryOfResidence        || '',
+    phoneNumber:               profile.phoneNumber               || '',
+    gender:                    profile.gender                    || '',
+    primaryIncomeSources:      profile.primaryIncomeSources      || [],
+    assetLocations:            profile.assetLocations            || [],
+    monthlyIncomeBracket:      profile.monthlyIncomeBracket      || '',
+    biggestFinancialHeadaches: profile.biggestFinancialHeadaches || [],
+    wantsWealthOpportunities:  Boolean(profile.wantsWealthOpportunities),
     // The currency every screen in the dashboard displays totals in
     // by default — chosen at onboarding Step 1 (see
     // personalOnboarding.controller.js), changeable any time

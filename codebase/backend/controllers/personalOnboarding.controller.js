@@ -97,12 +97,22 @@ const saveStep = asyncHandler(async (req, res) => {
   // ── Step 2 — Financial Profile ──────────────────────────────────
   if (step === 2) {
     const body = sanitise(req.body, [
-      'primaryIncomeSource', 'assetLocations', 'monthlyIncomeBracket', 'biggestFinancialHeadache',
+      'primaryIncomeSources', 'assetLocations', 'monthlyIncomeBracket', 'biggestFinancialHeadaches',
     ]);
-    requireFields(body, ['primaryIncomeSource', 'assetLocations', 'monthlyIncomeBracket', 'biggestFinancialHeadache']);
+    requireFields(body, ['primaryIncomeSources', 'assetLocations', 'monthlyIncomeBracket', 'biggestFinancialHeadaches']);
 
-    if (!PRIMARY_INCOME_SOURCES.includes(body.primaryIncomeSource)) {
-      throw ApiError.badRequest(`Invalid income source: "${body.primaryIncomeSource}".`);
+    // primaryIncomeSources is multi-select — accept either a real array or
+    // a comma-separated string (same tolerance as assetLocations).
+    const submittedIncomeSources = Array.isArray(body.primaryIncomeSources)
+      ? body.primaryIncomeSources
+      : String(body.primaryIncomeSources).split(',').map(s => s.trim()).filter(Boolean);
+
+    if (submittedIncomeSources.length === 0) {
+      throw ApiError.badRequest('Select at least one income source.');
+    }
+    const invalidIncomeSource = submittedIncomeSources.find(s => !PRIMARY_INCOME_SOURCES.includes(s));
+    if (invalidIncomeSource) {
+      throw ApiError.badRequest(`Invalid income source: "${invalidIncomeSource}".`);
     }
 
     // assetLocations is multi-select — accept either a real array or
@@ -122,15 +132,26 @@ const saveStep = asyncHandler(async (req, res) => {
     if (!MONTHLY_INCOME_BRACKETS.includes(body.monthlyIncomeBracket)) {
       throw ApiError.badRequest(`Invalid income bracket: "${body.monthlyIncomeBracket}".`);
     }
-    if (!FINANCIAL_HEADACHES.includes(body.biggestFinancialHeadache)) {
-      throw ApiError.badRequest(`Invalid financial headache: "${body.biggestFinancialHeadache}".`);
+
+    // biggestFinancialHeadaches is multi-select — accept either a real array or
+    // a comma-separated string (same tolerance as assetLocations).
+    const submittedHeadaches = Array.isArray(body.biggestFinancialHeadaches)
+      ? body.biggestFinancialHeadaches
+      : String(body.biggestFinancialHeadaches).split(',').map(h => h.trim()).filter(Boolean);
+
+    if (submittedHeadaches.length === 0) {
+      throw ApiError.badRequest('Select at least one financial headache.');
+    }
+    const invalidHeadache = submittedHeadaches.find(h => !FINANCIAL_HEADACHES.includes(h));
+    if (invalidHeadache) {
+      throw ApiError.badRequest(`Invalid financial headache: "${invalidHeadache}".`);
     }
 
     await personalService.updateOnboardingSession(sessionId, {
-      primaryIncomeSource:      body.primaryIncomeSource,
-      assetLocations:           submittedLocations,
-      monthlyIncomeBracket:     body.monthlyIncomeBracket,
-      biggestFinancialHeadache: body.biggestFinancialHeadache,
+      primaryIncomeSources:      submittedIncomeSources,
+      assetLocations:            submittedLocations,
+      monthlyIncomeBracket:      body.monthlyIncomeBracket,
+      biggestFinancialHeadaches: submittedHeadaches,
       onboardingStep: 2,
     });
 
@@ -223,18 +244,18 @@ const saveStep = asyncHandler(async (req, res) => {
 
     const personalUid = uuidv4();
     await personalService.createPersonalSpace(personalUid, identityUid, {
-      fullName:                 session.fullName,
-      nickname:                 session.nickname,
+      fullName:                  session.fullName,
+      nickname:                  session.nickname,
       email,
-      countryOfResidence:       session.countryOfResidence,
-      phoneNumber:              session.phoneNumber,
-      gender:                   body.gender,
-      primaryIncomeSource:      session.primaryIncomeSource,
-      assetLocations:           session.assetLocations,
-      monthlyIncomeBracket:     session.monthlyIncomeBracket,
-      biggestFinancialHeadache: session.biggestFinancialHeadache,
-      wantsWealthOpportunities: session.wantsWealthOpportunities,
-      displayCurrency:          session.displayCurrency || DEFAULT_DISPLAY_CURRENCY,
+      countryOfResidence:        session.countryOfResidence,
+      phoneNumber:               session.phoneNumber,
+      gender:                    body.gender,
+      primaryIncomeSources:      session.primaryIncomeSources || [],
+      assetLocations:            session.assetLocations,
+      monthlyIncomeBracket:      session.monthlyIncomeBracket,
+      biggestFinancialHeadaches: session.biggestFinancialHeadaches || [],
+      wantsWealthOpportunities:  session.wantsWealthOpportunities,
+      displayCurrency:           session.displayCurrency || DEFAULT_DISPLAY_CURRENCY,
     });
 
     console.log(`[PersonalOnboarding] Personal space created: ${personalUid} for identity ${identityUid} (${email})`);
